@@ -54,6 +54,61 @@ select {
   background: rgba(10, 17, 11, 0.88);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(12px);
+  transition:
+    transform 220ms ease,
+    opacity 180ms ease,
+    visibility 180ms ease;
+  will-change: transform, opacity;
+}
+
+.control-panel.collapsed {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 24px));
+}
+
+.panel-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  min-width: 42px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(221, 232, 204, 0.18);
+  border-radius: 8px;
+  color: #e8f4dd;
+  background: rgba(10, 17, 11, 0.9);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 180ms ease;
+}
+
+.panel-toggle:hover {
+  border-color: #6db85f;
+}
+
+.panel-toggle[aria-expanded="true"] {
+  transform: translateX(calc(min(340px, calc(100vw - 32px)) + 10px));
+}
+
+.panel-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.panel-toggle svg {
+  transition: transform 180ms ease;
 }
 
 .panel-header,
@@ -395,12 +450,55 @@ button:focus-visible,
 @media (max-width: 640px) {
   .control-panel {
     top: auto;
-    right: 10px;
-    bottom: 10px;
-    left: 10px;
-    width: auto;
-    max-height: min(58vh, 470px);
-    padding: 12px;
+    right: 12px;
+    bottom: 12px;
+    left: auto;
+    width: min(330px, calc(100vw - 58px));
+    max-height: min(54vh, 430px);
+    gap: 11px;
+    padding: 11px;
+  }
+
+  .control-panel.collapsed {
+    transform: translateY(calc(100% + 22px));
+  }
+
+  .panel-toggle {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: auto;
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .panel-toggle[aria-expanded="true"] {
+    transform: translateY(calc(-1 * min(54vh, 430px) - 10px));
+  }
+
+  .panel-header {
+    gap: 8px;
+  }
+
+  .icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dataset-stepper {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 6px;
+  }
+
+  .date-button {
+    min-height: 42px;
+    padding: 0 10px;
+  }
+
+  .segmented button,
+  .locate-button {
+    min-height: 35px;
+    font-size: 11px;
   }
 
   h1 {

@@ -1,6 +1,6 @@
 import React from 'react';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, RefreshCw } from 'lucide-react';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { SATELLITE_STYLE } from './mapStyle';
 import type { ActiveLayer, LocationStatus, Species, TileSet } from './types';
@@ -99,6 +99,7 @@ function App() {
   const [tilesError, setTilesError] = React.useState<string | null>(null);
   const [locationStatus, setLocationStatus] = React.useState<LocationStatus>('idle');
   const [calendarOpen, setCalendarOpen] = React.useState(false);
+  const [panelOpen, setPanelOpen] = React.useState(true);
   const [calendarMonth, setCalendarMonth] = React.useState(() => parseTileDate(DEFAULT_TILE_SET.date) ?? new Date());
 
   const selectedTileSet = React.useMemo<TileSet>(
@@ -293,7 +294,24 @@ function App() {
     <main className="app-shell">
       <div ref={mapContainerRef} className="map-canvas" />
 
-      <section className="control-panel" aria-label="Controlli indice funghi">
+      <button
+        className="panel-toggle"
+        type="button"
+        onClick={() => setPanelOpen((open) => !open)}
+        aria-expanded={panelOpen}
+        aria-controls="index-control-panel"
+        title={panelOpen ? 'Nascondi pannello' : 'Mostra pannello'}
+      >
+        <PanelLeftClose size={18} aria-hidden="true" />
+        <span>{panelOpen ? 'Nascondi' : 'Indice'}</span>
+      </button>
+
+      <section
+        id="index-control-panel"
+        className={`control-panel${panelOpen ? '' : ' collapsed'}`}
+        aria-label="Controlli indice funghi"
+        aria-hidden={!panelOpen}
+      >
         <header className="panel-header">
           <div>
             <p className="eyebrow">Indice funghi</p>
