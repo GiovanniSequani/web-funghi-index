@@ -43,12 +43,12 @@ select {
   position: absolute;
   top: 16px;
   left: 16px;
-  width: min(340px, calc(100vw - 32px));
+  width: min(306px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: auto;
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 11px;
+  padding: 12px;
   border: 1px solid rgba(221, 232, 204, 0.18);
   border-radius: 8px;
   background: rgba(10, 17, 11, 0.88);
@@ -100,7 +100,7 @@ select {
 }
 
 .panel-toggle[aria-expanded="true"] {
-  transform: translateX(calc(min(340px, calc(100vw - 32px)) + 10px));
+  transform: translateX(calc(min(306px, calc(100vw - 32px)) + 10px));
 }
 
 .panel-toggle[aria-expanded="true"] svg {
@@ -121,11 +121,11 @@ select {
 
 .panel-header {
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .eyebrow {
-  margin: 0 0 3px;
+  margin: 0;
   color: #98ad88;
   font-size: 11px;
   font-weight: 800;
@@ -133,16 +133,9 @@ select {
   text-transform: uppercase;
 }
 
-h1 {
-  margin: 0;
-  color: #f0f3e8;
-  font-size: 22px;
-  line-height: 1.1;
-}
-
 .icon-button {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -179,7 +172,7 @@ h1 {
 }
 
 .status-strip {
-  min-height: 34px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   padding: 8px 10px;
@@ -235,7 +228,7 @@ h1 {
 
 .segmented button,
 .locate-button {
-  min-height: 38px;
+  min-height: 35px;
   border: 1px solid #304533;
   border-radius: 7px;
   color: #a8b99d;
@@ -269,19 +262,19 @@ h1 {
 
 .dataset-stepper {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 36px;
-  gap: 8px;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 6px;
   align-items: stretch;
 }
 
 .date-button {
   width: 100%;
-  min-height: 46px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid #304533;
   border-radius: 7px;
   color: #ecf2e2;
@@ -293,7 +286,7 @@ h1 {
   min-width: 0;
   overflow: hidden;
   color: #f0f3e8;
-  font-size: 15px;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -336,6 +329,142 @@ h1 {
   border: 1px solid rgba(221, 232, 204, 0.16);
   border-radius: 8px;
   background: rgba(17, 26, 18, 0.98);
+}
+
+.legend-toggle,
+.legend-panel {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  border: 1px solid rgba(221, 232, 204, 0.18);
+  border-radius: 8px;
+  background: rgba(10, 17, 11, 0.9);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.legend-toggle {
+  z-index: 2;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  color: #e8f4dd;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  transition:
+    border-color 160ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.legend-toggle:hover {
+  border-color: #6db85f;
+}
+
+.legend-toggle[aria-expanded="true"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+.legend-panel {
+  width: 206px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px 10px;
+  padding: 10px;
+  color: #e8f4dd;
+  transition:
+    transform 200ms ease,
+    opacity 170ms ease,
+    visibility 170ms ease;
+}
+
+.legend-panel.collapsed {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(14px);
+}
+
+.legend-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.legend-head strong {
+  color: #f0f3e8;
+  font-size: 13px;
+}
+
+.legend-close {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #304533;
+  border-radius: 6px;
+  color: #dce8ca;
+  background: #182019;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.legend-scale {
+  display: grid;
+  grid-template-rows: repeat(8, 22px);
+  overflow: hidden;
+  border: 1px solid rgba(221, 232, 204, 0.22);
+  border-radius: 7px;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.16) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.16) 75%);
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-size: 12px 12px;
+}
+
+.legend-scale span {
+  min-height: 0;
+}
+
+.legend-labels {
+  display: grid;
+  grid-template-rows: repeat(8, 22px);
+  min-width: 0;
+}
+
+.legend-labels div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.legend-labels span {
+  width: 28px;
+  flex: 0 0 auto;
+  color: #9bad8e;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.legend-labels strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #e5ecd8;
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendar-header {
@@ -449,31 +578,31 @@ button:focus-visible,
 
 @media (max-width: 640px) {
   .control-panel {
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: auto;
-    width: min(330px, calc(100vw - 58px));
-    max-height: min(54vh, 430px);
-    gap: 11px;
-    padding: 11px;
+    top: 10px;
+    right: auto;
+    bottom: auto;
+    left: 10px;
+    width: min(276px, calc(100vw - 58px));
+    max-height: min(62vh, 430px);
+    gap: 9px;
+    padding: 10px;
   }
 
   .control-panel.collapsed {
-    transform: translateY(calc(100% + 22px));
+    transform: translateX(calc(-100% - 20px));
   }
 
   .panel-toggle {
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: auto;
-    height: 40px;
-    padding: 0 10px;
+    top: 10px;
+    right: auto;
+    bottom: auto;
+    left: 10px;
+    height: 38px;
+    padding: 0 9px;
   }
 
   .panel-toggle[aria-expanded="true"] {
-    transform: translateY(calc(-1 * min(54vh, 430px) - 10px));
+    transform: translateX(calc(min(276px, calc(100vw - 58px)) + 8px));
   }
 
   .panel-header {
@@ -497,12 +626,21 @@ button:focus-visible,
 
   .segmented button,
   .locate-button {
-    min-height: 35px;
+    min-height: 33px;
     font-size: 11px;
   }
 
-  h1 {
-    font-size: 19px;
+  .legend-toggle {
+    left: 10px;
+    bottom: 10px;
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .legend-panel {
+    left: 10px;
+    bottom: 10px;
+    width: min(206px, calc(100vw - 20px));
   }
 
   .maplibregl-ctrl-top-right {

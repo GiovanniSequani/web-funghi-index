@@ -1,6 +1,6 @@
 import React from 'react';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { SATELLITE_STYLE } from './mapStyle';
 import type { ActiveLayer, LocationStatus, Species, TileSet } from './types';
@@ -12,6 +12,16 @@ const USER_SOURCE_ID = 'user-location-source';
 const USER_LAYER_ID = 'user-location-layer';
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
+const LEGEND_STOPS = [
+  { value: '0', label: 'assenza', color: 'rgba(255, 255, 255, 0)' },
+  { value: '15', label: 'tracce', color: 'rgba(180, 230, 255, 0.59)' },
+  { value: '30', label: 'presenza debole', color: 'rgba(100, 200, 255, 0.78)' },
+  { value: '45', label: 'presenza debole', color: 'rgba(80, 180, 90, 1)' },
+  { value: '60', label: 'presenza moderata', color: 'rgba(255, 230, 70, 1)' },
+  { value: '75', label: 'presenza intensa', color: 'rgba(255, 120, 60, 1)' },
+  { value: '90', label: 'presenza abbondante', color: 'rgba(210, 60, 40, 1)' },
+  { value: '100', label: 'presenza abbondante', color: 'rgba(120, 78, 42, 1)' },
+] as const;
 
 function tileKey(tileSet: TileSet): string {
   return `${tileSet.date}_v${tileSet.version}`;
@@ -100,6 +110,7 @@ function App() {
   const [locationStatus, setLocationStatus] = React.useState<LocationStatus>('idle');
   const [calendarOpen, setCalendarOpen] = React.useState(false);
   const [panelOpen, setPanelOpen] = React.useState(true);
+  const [legendOpen, setLegendOpen] = React.useState(false);
   const [calendarMonth, setCalendarMonth] = React.useState(() => parseTileDate(DEFAULT_TILE_SET.date) ?? new Date());
 
   const selectedTileSet = React.useMemo<TileSet>(
@@ -306,6 +317,45 @@ function App() {
         <span>{panelOpen ? 'Nascondi' : 'Indice'}</span>
       </button>
 
+      <button
+        className="legend-toggle"
+        type="button"
+        onClick={() => setLegendOpen((open) => !open)}
+        aria-expanded={legendOpen}
+        aria-controls="index-legend-panel"
+        title={legendOpen ? 'Nascondi legenda' : 'Mostra legenda'}
+      >
+        <Palette size={17} aria-hidden="true" />
+        <span>Legenda</span>
+      </button>
+
+      <aside
+        id="index-legend-panel"
+        className={`legend-panel${legendOpen ? '' : ' collapsed'}`}
+        aria-label="Legenda colori indice"
+        aria-hidden={!legendOpen}
+      >
+        <div className="legend-head">
+          <strong>Indice</strong>
+          <button className="legend-close" type="button" onClick={() => setLegendOpen(false)} title="Nascondi legenda">
+            ×
+          </button>
+        </div>
+        <div className="legend-scale" aria-hidden="true">
+          {LEGEND_STOPS.map((stop) => (
+            <span key={stop.value} style={{ background: stop.color }} />
+          ))}
+        </div>
+        <div className="legend-labels">
+          {LEGEND_STOPS.map((stop) => (
+            <div key={stop.value}>
+              <span>{stop.value}</span>
+              <strong>{stop.label}</strong>
+            </div>
+          ))}
+        </div>
+      </aside>
+
       <section
         id="index-control-panel"
         className={`control-panel${panelOpen ? '' : ' collapsed'}`}
@@ -315,7 +365,6 @@ function App() {
         <header className="panel-header">
           <div>
             <p className="eyebrow">Indice funghi</p>
-            <h1>Alpi nord-est</h1>
           </div>
           <button className="icon-button" type="button" onClick={() => loadTileSets()} title="Aggiorna tileset">
             <RefreshCw size={18} aria-hidden="true" />
