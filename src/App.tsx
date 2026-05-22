@@ -304,6 +304,9 @@ function App() {
   return (
     <main className="app-shell">
       <div ref={mapContainerRef} className="map-canvas" />
+      <div className="app-banner" aria-hidden="true">
+        Indice Funghi
+      </div>
 
       <button
         className="panel-toggle"
