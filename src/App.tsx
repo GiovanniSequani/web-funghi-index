@@ -202,7 +202,7 @@ function App() {
       type: 'raster',
       tiles: [tileUrl(species, selectedTileSet)],
       tileSize: 256,
-      minzoom: 6,
+      minzoom: 3,
       maxzoom: 13,
     });
     map.addLayer({
