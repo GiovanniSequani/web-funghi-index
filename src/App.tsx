@@ -202,8 +202,8 @@ function App() {
       type: 'raster',
       tiles: [tileUrl(species, selectedTileSet)],
       tileSize: 256,
-      minzoom: 8,
-      maxzoom: 14,
+      minzoom: 6,
+      maxzoom: 13,
     });
     map.addLayer({
       id: TILE_LAYER_ID,
