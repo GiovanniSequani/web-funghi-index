@@ -599,6 +599,89 @@ button:focus-visible,
   right: 16px;
 }
 
+.coordinate-map-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.coordinate-map-popup .maplibregl-popup-tip {
+  border-top-color: rgba(10, 17, 11, 0.96);
+  border-bottom-color: rgba(10, 17, 11, 0.96);
+}
+
+.coordinate-popup-card {
+  width: 224px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #3d5542;
+  border-radius: 8px;
+  color: #dde8cc;
+  background: rgba(10, 17, 11, 0.96);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+}
+
+.coordinate-popup-header,
+.coordinate-popup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.coordinate-popup-header strong {
+  color: #8ba67a;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.coordinate-popup-row span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coordinate-popup-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #2d4030;
+  border-radius: 6px;
+  color: #dde8cc;
+  background: #1f2b20;
+  cursor: pointer;
+}
+
+.coordinate-popup-weather {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #3d5542;
+  border-radius: 7px;
+  color: #dde8cc;
+  background: #2e5528;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.coordinate-popup-icon:hover,
+.coordinate-popup-weather:hover {
+  border-color: #6db85f;
+}
+
 @media (max-width: 640px) {
   .app-banner {
     top: 10px;

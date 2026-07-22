@@ -1,8 +1,9 @@
 import React from 'react';
+import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, CloudSun, Copy, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw, X } from 'lucide-react';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
-import { SATELLITE_STYLE } from './mapStyle';
+import { PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
 import type { ActiveLayer, LocationStatus, Species, TileSet } from './types';
 
 const DEFAULT_CENTER: [number, number] = [11.05, 46.18];
@@ -10,6 +11,11 @@ const TILE_SOURCE_ID = 'funghi-index-source';
 const TILE_LAYER_ID = 'funghi-index-layer';
 const USER_SOURCE_ID = 'user-location-source';
 const USER_LAYER_ID = 'user-location-layer';
+
+type SelectedMapPoint = {
+  longitude: number;
+  latitude: number;
+};
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
 const LEGEND_STOPS = [
@@ -95,10 +101,43 @@ function locationMessage(status: LocationStatus): string {
   }
 }
 
+function CoordinatePopupContent(props: { point: SelectedMapPoint; onClose: () => void }) {
+  const { point, onClose } = props;
+  const [copied, setCopied] = React.useState(false);
+  const coordinates = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
+
+  const copyCoordinates = async () => {
+    await navigator.clipboard.writeText(coordinates);
+    setCopied(true);
+  };
+
+  return (
+    <div className={'coordinate-popup-card'}>
+      <div className={'coordinate-popup-header'}>
+        <strong>Coordinate</strong>
+        <button type={'button'} onClick={onClose} className={'coordinate-popup-icon'} title={'Chiudi'}>
+          <X size={16} aria-hidden={'true'} />
+        </button>
+      </div>
+      <div className={'coordinate-popup-row'}>
+        <span>{coordinates}</span>
+        <button type={'button'} onClick={copyCoordinates} className={'coordinate-popup-icon'} title={'Copia coordinate'}>
+          {copied ? <Check size={16} aria-hidden={'true'} /> : <Copy size={16} aria-hidden={'true'} />}
+        </button>
+      </div>
+      <button type={'button'} className={'coordinate-popup-weather'} onClick={() => {}}>
+        <CloudSun size={17} aria-hidden={'true'} />
+        <span>Mostra dati meteo</span>
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<Map | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
+  const [selectedMapPoint, setSelectedMapPoint] = React.useState<SelectedMapPoint | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -180,6 +219,10 @@ function App() {
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
     map.on('load', () => setMapReady(true));
+    map.on('contextmenu', (event) => {
+      event.originalEvent.preventDefault();
+      setSelectedMapPoint({ longitude: event.lngLat.lng, latitude: event.lngLat.lat });
+    });
     mapRef.current = map;
 
     return () => {
@@ -187,6 +230,36 @@ function App() {
       mapRef.current = null;
     };
   }, []);
+
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !selectedMapPoint) return;
+
+    const container = document.createElement('div');
+    const popup = new maplibregl.Popup({
+      className: 'coordinate-map-popup',
+      closeButton: false,
+      closeOnClick: true,
+      maxWidth: 'none',
+      offset: 14,
+    })
+      .setLngLat([selectedMapPoint.longitude, selectedMapPoint.latitude])
+      .setDOMContent(container)
+      .addTo(map);
+    const root = createRoot(container);
+    root.render(<CoordinatePopupContent point={selectedMapPoint} onClose={() => popup.remove()} />);
+
+    let cleaningUp = false;
+    popup.on('close', () => {
+      if (!cleaningUp) setSelectedMapPoint(null);
+    });
+
+    return () => {
+      cleaningUp = true;
+      root.unmount();
+      popup.remove();
+    };
+  }, [mapReady, selectedMapPoint]);
 
   React.useEffect(() => {
     const map = mapRef.current;
@@ -212,7 +285,7 @@ function App() {
       paint: {
         'raster-opacity': opacity,
       },
-    });
+    }, PLACE_LABEL_LAYER_ID);
   }, [activeLayer, mapReady, selectedDate, selectedTileSet, selectedVersion]);
 
   React.useEffect(() => {
