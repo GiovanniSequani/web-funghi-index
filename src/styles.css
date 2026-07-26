@@ -39,6 +39,10 @@ select {
   inset: 0;
 }
 
+.map-canvas .maplibregl-canvas {
+  -webkit-touch-callout: none;
+}
+
 .app-banner {
   position: absolute;
   top: 14px;

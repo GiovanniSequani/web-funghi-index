@@ -80,6 +80,11 @@ trailing slash, and otherwise uses the checked-in default Supabase project
 URL. Both Vite variables are browser-visible public configuration. Never add a
 service-role key, database password, or private token.
 
+Cloudflare Pages must define both public variables in its production build
+environment. Vite embeds them at build time, and `vite.config.ts` deliberately
+fails production builds when either value is missing or invalid. Saving a
+variable therefore requires a new deployment before the browser can use it.
+
 The deployed CSP must allow:
 
 - Supabase under `img-src` and `connect-src`;

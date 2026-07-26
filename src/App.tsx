@@ -4,6 +4,7 @@ import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Crosshair, Layers, LocateFixed, PanelLeftClose, PanelRightOpen, Palette, RefreshCw, X } from 'lucide-react';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
+import { installTouchLongPress } from './mapLongPress';
 import { PointDetailsDrawer } from './pointDetails/PointDetailsDrawer';
 import type { MapPoint } from './pointDetails/types';
 import type { ActiveLayer, LocationStatus, Species, TileSet } from './types';
@@ -221,13 +222,27 @@ function App() {
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
     map.on('load', () => setMapReady(true));
+    let suppressMapClickUntil = 0;
+    map.on('click', () => {
+      if (Date.now() < suppressMapClickUntil) return;
+      setSelectedMapPoint(null);
+    });
     map.on('contextmenu', (event) => {
       event.originalEvent.preventDefault();
       setSelectedMapPoint({ longitude: event.lngLat.lng, latitude: event.lngLat.lat });
     });
+
+    const canvas = map.getCanvas();
+    const removeLongPress = installTouchLongPress(canvas, ({ clientX, clientY }) => {
+      suppressMapClickUntil = Date.now() + 1_000;
+      const bounds = canvas.getBoundingClientRect();
+      const lngLat = map.unproject([clientX - bounds.left, clientY - bounds.top]);
+      setSelectedMapPoint({ longitude: lngLat.lng, latitude: lngLat.lat });
+    });
     mapRef.current = map;
 
     return () => {
+      removeLongPress();
       map.remove();
       mapRef.current = null;
     };
@@ -241,7 +256,7 @@ function App() {
     const popup = new maplibregl.Popup({
       className: 'coordinate-map-popup',
       closeButton: false,
-      closeOnClick: true,
+      closeOnClick: false,
       maxWidth: 'none',
       offset: 14,
     })

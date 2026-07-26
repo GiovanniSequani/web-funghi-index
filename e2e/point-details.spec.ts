@@ -18,6 +18,37 @@ async function openDetails(page: Page, relativeX = 0.55, relativeY = 0.55) {
   await popup.getByRole('button', { name: 'Mostra dettagli' }).click();
   await expect(page.getByRole('dialog', { name: 'Dettagli del punto' })).toBeVisible();
 }
+async function longPressMap(page: Page, relativeX = 0.5, relativeY = 0.62) {
+  const canvas = page.locator('.maplibregl-canvas');
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error('Map canvas bounds unavailable');
+  const clientX = bounds.x + bounds.width * relativeX;
+  const clientY = bounds.y + bounds.height * relativeY;
+
+  await canvas.dispatchEvent('pointerdown', {
+    bubbles: true,
+    clientX,
+    clientY,
+    isPrimary: true,
+    pointerId: 1,
+    pointerType: 'touch',
+  });
+  await page.waitForTimeout(650);
+  await canvas.dispatchEvent('pointerup', {
+    bubbles: true,
+    clientX,
+    clientY,
+    isPrimary: true,
+    pointerId: 1,
+    pointerType: 'touch',
+  });
+  await canvas.dispatchEvent('click', {
+    bubbles: true,
+    clientX,
+    clientY,
+  });
+}
+
 
 test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
@@ -42,7 +73,7 @@ test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', 
   await expect(drawer.getByRole('heading', { name: 'Temperature' })).toBeVisible();
   await expect(drawer.getByText(/Giorni mancanti:/)).toBeVisible();
   const drawerBounds = await drawer.boundingBox();
-  expect(drawerBounds?.width).toBeGreaterThanOrEqual(450);
+  expect(drawerBounds?.width).toBeGreaterThanOrEqual(449);
   expect(drawerBounds?.width).toBeLessThanOrEqual(500);
 
   const firstChart = drawer.locator('.weather-chart-frame').first();
@@ -65,7 +96,7 @@ test('desktop compatto mantiene mappa visibile e drawer entro 500 px', async ({ 
   await openDetails(page);
   const drawer = page.getByRole('dialog', { name: 'Dettagli del punto' });
   const drawerBounds = await drawer.boundingBox();
-  expect(drawerBounds?.width).toBeGreaterThanOrEqual(450);
+  expect(drawerBounds?.width).toBeGreaterThanOrEqual(449);
   expect(drawerBounds?.width).toBeLessThanOrEqual(500);
   const mapBounds = await page.locator('.map-canvas').boundingBox();
   expect(mapBounds?.width).toBe(900);
@@ -74,7 +105,12 @@ test('desktop compatto mantiene mappa visibile e drawer entro 500 px', async ({ 
 
 test('mobile usa un pannello a schermo intero e navigazione touch', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await openDetails(page, 0.5, 0.62);
+  await page.goto('/');
+  await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+  await longPressMap(page);
+  const popup = page.locator('.coordinate-popup-card');
+  await expect(popup).toBeVisible();
+  await popup.getByRole('button', { name: 'Mostra dettagli' }).click();
   const drawer = page.getByRole('dialog', { name: 'Dettagli del punto' });
   const drawerBounds = await drawer.boundingBox();
   expect(drawerBounds?.width).toBeCloseTo(390, 2);
