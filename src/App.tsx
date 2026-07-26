@@ -1,9 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, CloudSun, Copy, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Crosshair, Layers, LocateFixed, PanelLeftClose, PanelRightOpen, Palette, RefreshCw, X } from 'lucide-react';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
+import { PointDetailsDrawer } from './pointDetails/PointDetailsDrawer';
+import type { MapPoint } from './pointDetails/types';
 import type { ActiveLayer, LocationStatus, Species, TileSet } from './types';
 
 const DEFAULT_CENTER: [number, number] = [11.05, 46.18];
@@ -11,11 +13,6 @@ const TILE_SOURCE_ID = 'funghi-index-source';
 const TILE_LAYER_ID = 'funghi-index-layer';
 const USER_SOURCE_ID = 'user-location-source';
 const USER_LAYER_ID = 'user-location-layer';
-
-type SelectedMapPoint = {
-  longitude: number;
-  latitude: number;
-};
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
 const LEGEND_STOPS = [
@@ -101,8 +98,12 @@ function locationMessage(status: LocationStatus): string {
   }
 }
 
-function CoordinatePopupContent(props: { point: SelectedMapPoint; onClose: () => void }) {
-  const { point, onClose } = props;
+function CoordinatePopupContent(props: {
+  point: MapPoint;
+  onClose: () => void;
+  onShowDetails: () => void;
+}) {
+  const { point, onClose, onShowDetails } = props;
   const [copied, setCopied] = React.useState(false);
   const coordinates = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
 
@@ -125,9 +126,9 @@ function CoordinatePopupContent(props: { point: SelectedMapPoint; onClose: () =>
           {copied ? <Check size={16} aria-hidden={'true'} /> : <Copy size={16} aria-hidden={'true'} />}
         </button>
       </div>
-      <button type={'button'} className={'coordinate-popup-weather'} onClick={() => {}}>
-        <CloudSun size={17} aria-hidden={'true'} />
-        <span>Mostra dati meteo</span>
+      <button type={'button'} className={'coordinate-popup-weather'} onClick={onShowDetails}>
+        <PanelRightOpen size={17} aria-hidden={'true'} />
+        <span>Mostra dettagli</span>
       </button>
     </div>
   );
@@ -137,7 +138,8 @@ function App() {
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<Map | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
-  const [selectedMapPoint, setSelectedMapPoint] = React.useState<SelectedMapPoint | null>(null);
+  const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
+  const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -247,7 +249,13 @@ function App() {
       .setDOMContent(container)
       .addTo(map);
     const root = createRoot(container);
-    root.render(<CoordinatePopupContent point={selectedMapPoint} onClose={() => popup.remove()} />);
+    root.render(
+      <CoordinatePopupContent
+        point={selectedMapPoint}
+        onClose={() => popup.remove()}
+        onShowDetails={() => setDetailsPoint(selectedMapPoint)}
+      />,
+    );
 
     let cleaningUp = false;
     popup.on('close', () => {
@@ -613,6 +621,9 @@ function App() {
           {tilesError && <p className="error-text">{tilesError}</p>}
         </div>
       </section>
+      {detailsPoint && (
+        <PointDetailsDrawer point={detailsPoint} onClose={() => setDetailsPoint(null)} />
+      )}
     </main>
   );
 }

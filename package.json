@@ -6,19 +6,28 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
     "lucide-react": "^0.544.0",
     "maplibre-gl": "^5.6.2",
-    "vite": "^7.1.7",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-is": "^19.2.8",
+    "recharts": "^3.10.1",
+    "vite": "^7.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "typescript": "^5.9.2"
+    "jsdom": "^29.1.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
   }
 }

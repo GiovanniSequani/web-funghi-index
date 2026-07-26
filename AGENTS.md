@@ -1,0 +1,202 @@
+# FunghiTracker web index
+
+## Scope
+
+This repository is the standalone FunghiTracker web map. Work here must stay
+inside `D:\FunghiTracker\web-funghi-index`.
+
+- Do not edit the mobile app or backend repository from this workspace.
+- Backend pipelines own tile generation, upload, retention, and manifest
+  publication. This frontend only discovers and renders already-published
+  tiles.
+- Preserve the existing map instance when changing controls. Layer, date,
+  version, opacity, calendar, and panel interactions must not remount or
+  recenter the map. Recentring is allowed only after the explicit
+  `Centra posizione` action.
+
+## Architecture
+
+The site is a static React 19 + TypeScript application built by Vite.
+
+- `index.html` provides `#root` and loads `src/main.tsx`.
+- `src/main.tsx` mounts the single `App` component and global CSS.
+- `src/App.tsx` owns the MapLibre map, controls, geolocation, tile selection,
+  calendar, opacity, legend, and coordinate popup.
+- `src/mapStyle.ts` defines the Esri satellite and place-label raster sources.
+- `src/supabaseTiles.ts` is the only tile-discovery and tile-URL adapter.
+- `src/types.ts` contains the shared layer, species, tile-set, and location
+  types.
+- `src/styles.css` contains the base responsive UI styling.
+- `src/pointDetails/` contains the weather and terrain clients, grid formulas, decoders, concurrent loading hook, responsive drawer, charts, and their tests.
+- `public/_headers` is copied into `dist/` for hosts that support the
+  Cloudflare-style headers file.
+- `vercel.json` mirrors the security headers for Vercel.
+- `dist/` and `.env*` are generated/local state and are not committed.
+
+There is no client-side router and no server runtime. The browser directly
+contacts public Supabase Storage and Esri tile endpoints.
+
+## Commands
+
+Use the Windows command shims in PowerShell:
+
+```powershell
+npm.cmd ci
+npm.cmd run dev
+npm.cmd run build
+npm.cmd test
+npm.cmd run test:e2e
+npm.cmd run preview
+```
+
+- `npm.cmd run dev` starts Vite on `0.0.0.0`.
+- `npm.cmd run build` is the required verification. It runs
+  `tsc --noEmit` followed by `vite build` and writes `dist/`.
+- `npm.cmd run preview` serves the production build locally.
+- `npm.cmd test` runs the Vitest unit and hook suite.
+- `npm.cmd run test:e2e` runs responsive and state checks in Edge through Playwright.
+- There is currently no separate lint script. Do not claim lint passed.
+- The production bundle currently triggers Vite's large-chunk warning; it is a
+  warning, not a build failure.
+
+Before handing off a change, run:
+
+```powershell
+npm.cmd run build
+git status --short --branch
+```
+
+## Environment and external services
+
+The supported public environment variables are:
+
+```dotenv
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<public-anon-key>
+```
+
+`src/supabaseTiles.ts` accepts only an HTTPS `*.supabase.co` origin, removes a
+trailing slash, and otherwise uses the checked-in default Supabase project
+URL. Both Vite variables are browser-visible public configuration. Never add a
+service-role key, database password, or private token.
+
+The deployed CSP must allow:
+
+- Supabase under `img-src` and `connect-src`;
+- Esri ArcGIS hosts under `img-src` and `connect-src`;
+- `blob:` workers for MapLibre.
+
+Keep `public/_headers` and `vercel.json` aligned when changing these origins or
+policies.
+
+## Tile contract
+
+`tile_sets.json` in the public Supabase `tiles` bucket is the source of truth.
+Do not replace it with recursive Storage listing: listing the large PNG object
+tree previously caused Supabase `544 DatabaseTimeout` failures.
+
+Manifest URL:
+
+```text
+https://<project-ref>.supabase.co/storage/v1/object/public/tiles/tile_sets.json
+```
+
+Expected payload:
+
+```json
+{
+  "tileSets": [
+    {
+      "date": "2026-07-22",
+      "version": "1"
+    }
+  ]
+}
+```
+
+Contract details:
+
+- `tileSets` must be an array.
+- `date` and `version` must be strings.
+- Dates may use either `YYYY-MM-DD` or `YYYY_MM_DD`, but a single date must use
+  the same separator throughout.
+- `version` is one or more decimal digits.
+- Invalid entries are ignored; an empty valid result is an error.
+- Valid entries are sorted by date descending, then numeric version
+  descending. The first entry becomes the current dataset.
+- The manifest request uses `cache: no-store` plus a timestamp query parameter.
+- Manifest failure is visible in the UI. The hard-coded default tile set is
+  display/error fallback state, not an alternative discovery mechanism.
+
+Raster URL template:
+
+```text
+https://<project-ref>.supabase.co/storage/v1/object/public/tiles/<date>_v<version>/<species>/{z}/{x}/{y}.png
+```
+
+Raster requirements:
+
+- species directories are exactly `porcini` and `finferli`;
+- tiles are public 256 px PNG files;
+- the path order is `{z}/{x}/{y}.png`;
+- supported index zooms are `3..13`;
+- the bucket must permit anonymous reads and cross-origin browser requests.
+
+The backend must publish all tile objects before adding a set to
+`tile_sets.json`, and must update the manifest when retention deletes a set.
+Frontend changes must remain compatible with that publication order.
+
+## Deployment
+
+### Current state
+
+As verified on 2026-07-24:
+
+- branch `main` tracks `origin/main` at `f882df3`;
+- the repository is public and its default branch is `main`;
+- GitHub reports `has_pages: false`;
+- `https://giovannisequani.github.io/web-funghi-index/` returns 404;
+- the repository homepage points to
+  `https://web-funghi-index.pages.dev/`, which currently returns 200;
+- no `.github/workflows` deployment workflow is committed.
+
+The Cloudflare Pages project configuration lives outside this repository.
+The compatible settings are build command `npm.cmd run build` (or
+`npm run build` on Linux), output directory `dist`, and `main` as the
+production branch.
+
+### GitHub Pages
+
+GitHub Pages is not currently configured. Before enabling project Pages at
+`/web-funghi-index/`, both of these repository changes are required:
+
+1. Set Vite's production `base` to `/web-funghi-index/` (or derive it from the
+   deployment environment). The current default `/` base is suitable for the
+   Cloudflare root domain but not for GitHub project Pages.
+2. Add a GitHub Actions Pages workflow that installs with `npm ci`, builds,
+   uploads `dist/` with `actions/upload-pages-artifact`, and deploys with
+   `actions/deploy-pages`. The workflow needs `pages: write` and
+   `id-token: write`, and the repository Pages source must be GitHub Actions.
+
+Use the official Pages actions and pin current supported major versions when
+the workflow is created. Do not commit `dist/` or deploy from an ad-hoc branch.
+
+GitHub Pages ignores both `public/_headers` and `vercel.json`; it cannot apply
+the current CSP and other response headers from these files. Treat that as an
+explicit hosting trade-off and re-check MapLibre, Supabase, Esri, geolocation,
+and clipboard behavior on the final HTTPS Pages URL.
+
+If a custom domain or a user-site root is chosen instead, decide the final URL
+first and set Vite `base` accordingly. Do not guess the base path.
+
+## Git discipline
+
+- The canonical remote is
+  `https://github.com/GiovanniSequani/web-funghi-index.git`.
+- Keep generated `dist/`, dependencies, local `.env` files, logs, and
+  TypeScript build metadata untracked.
+- Inspect the worktree before editing and preserve unrelated user changes.
+- Do not change app/backend files, tile data, Supabase objects, GitHub
+  settings, or deployment settings unless the user explicitly asks.
+- Do not add a Pages workflow and claim deployment is complete without also
+  verifying the repository Pages setting and the live URL.
