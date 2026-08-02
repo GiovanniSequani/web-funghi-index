@@ -15,7 +15,7 @@ async function openDetails(page: Page, relativeX = 0.55, relativeY = 0.55) {
   });
   const popup = page.locator('.coordinate-popup-card');
   await expect(popup).toBeVisible();
-  await popup.getByRole('button', { name: 'Mostra dettagli' }).click();
+  await popup.getByRole('button', { name: 'Mostra dati' }).click();
   await expect(page.getByRole('dialog', { name: 'Dettagli del punto' })).toBeVisible();
 }
 async function longPressMap(page: Page, relativeX = 0.5, relativeY = 0.62) {
@@ -66,7 +66,7 @@ test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', 
     button: 'right',
     position: { x: bounds.width * 0.55, y: bounds.height * 0.55 },
   });
-  await page.getByRole('button', { name: 'Mostra dettagli' }).click();
+  await page.getByRole('button', { name: 'Mostra dati' }).click();
 
   const drawer = page.getByRole('dialog', { name: 'Dettagli del punto' });
   await expect(drawer.getByRole('heading', { name: 'Terreno' })).toBeVisible();
@@ -81,7 +81,10 @@ test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', 
   const initialDate = await drawer.locator('#selected-day-title').textContent();
   await firstChart.press('ArrowLeft');
   await expect(drawer.locator('#selected-day-title')).not.toHaveText(initialDate ?? '');
-  await firstChart.hover({ position: { x: 190, y: 80 } });
+  await firstChart.press('End');
+  const firstChartBounds = await firstChart.boundingBox();
+  if (!firstChartBounds) throw new Error('Weather chart bounds unavailable');
+  await firstChart.hover({ position: { x: firstChartBounds.width - 16, y: 80 } });
   await expect(drawer.locator('.weather-tooltip')).toHaveCount(4);
   await expect(drawer.locator('.weather-tooltip').first()).toBeVisible();
 
@@ -110,7 +113,7 @@ test('mobile usa un pannello a schermo intero e navigazione touch', async ({ pag
   await longPressMap(page);
   const popup = page.locator('.coordinate-popup-card');
   await expect(popup).toBeVisible();
-  await popup.getByRole('button', { name: 'Mostra dettagli' }).click();
+  await popup.getByRole('button', { name: 'Mostra dati' }).click();
   const drawer = page.getByRole('dialog', { name: 'Dettagli del punto' });
   const drawerBounds = await drawer.boundingBox();
   expect(drawerBounds?.width).toBeCloseTo(390, 2);

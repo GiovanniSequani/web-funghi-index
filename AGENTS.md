@@ -28,6 +28,9 @@ The site is a static React 19 + TypeScript application built by Vite.
   types.
 - `src/styles.css` contains the base responsive UI styling.
 - `src/pointDetails/` contains the weather and terrain clients, grid formulas, decoders, concurrent loading hook, responsive drawer, charts, and their tests.
+- `src/indexData/` contains the public `index-data` Storage client, manifest-driven
+  binary decoder, stale-request-safe loading hook, popup summary, responsive
+  analysis drawer, factor ranking, and tests.
 - `public/_headers` is copied into `dist/` for hosts that support the
   Cloudflare-style headers file.
 - `vercel.json` mirrors the security headers for Vercel.
@@ -150,6 +153,21 @@ Raster requirements:
 The backend must publish all tile objects before adding a set to
 `tile_sets.json`, and must update the manifest when retention deletes a set.
 Frontend changes must remain compatible with that publication order.
+
+## Index-data contract
+
+The public Supabase `index-data` bucket is read through immutable manifests:
+
+1. fetch `current.json` without Storage listing;
+2. fetch the exact versioned `manifest_path`;
+3. reject coordinates outside the manifest bbox before grid clamping;
+4. fetch only the exact chunk path declared for the selected cell;
+5. validate compressed/raw lengths and SHA-256 when Web Crypto is available;
+6. decompress zlib and decode little-endian fields using only manifest offsets,
+   dtypes, scales, nodata values, labels, formulas, and thresholds.
+
+Versioned manifests and chunks may use browser/CDN caching. A changed current
+version invalidates the in-memory manifest and chunk caches.
 
 ## Deployment
 

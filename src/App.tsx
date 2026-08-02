@@ -1,7 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Crosshair, Layers, LocateFixed, PanelLeftClose, PanelRightOpen, Palette, RefreshCw, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
+import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
+import { IndexPopupContent } from './indexData/IndexPopupContent';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
 import { installTouchLongPress } from './mapLongPress';
@@ -99,48 +101,13 @@ function locationMessage(status: LocationStatus): string {
   }
 }
 
-function CoordinatePopupContent(props: {
-  point: MapPoint;
-  onClose: () => void;
-  onShowDetails: () => void;
-}) {
-  const { point, onClose, onShowDetails } = props;
-  const [copied, setCopied] = React.useState(false);
-  const coordinates = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
-
-  const copyCoordinates = async () => {
-    await navigator.clipboard.writeText(coordinates);
-    setCopied(true);
-  };
-
-  return (
-    <div className={'coordinate-popup-card'}>
-      <div className={'coordinate-popup-header'}>
-        <strong>Coordinate</strong>
-        <button type={'button'} onClick={onClose} className={'coordinate-popup-icon'} title={'Chiudi'}>
-          <X size={16} aria-hidden={'true'} />
-        </button>
-      </div>
-      <div className={'coordinate-popup-row'}>
-        <span>{coordinates}</span>
-        <button type={'button'} onClick={copyCoordinates} className={'coordinate-popup-icon'} title={'Copia coordinate'}>
-          {copied ? <Check size={16} aria-hidden={'true'} /> : <Copy size={16} aria-hidden={'true'} />}
-        </button>
-      </div>
-      <button type={'button'} className={'coordinate-popup-weather'} onClick={onShowDetails}>
-        <PanelRightOpen size={17} aria-hidden={'true'} />
-        <span>Mostra dettagli</span>
-      </button>
-    </div>
-  );
-}
-
 function App() {
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<Map | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
   const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
   const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
+  const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -265,10 +232,17 @@ function App() {
       .addTo(map);
     const root = createRoot(container);
     root.render(
-      <CoordinatePopupContent
+      <IndexPopupContent
         point={selectedMapPoint}
         onClose={() => popup.remove()}
-        onShowDetails={() => setDetailsPoint(selectedMapPoint)}
+        onShowData={() => {
+          setAnalysisPoint(null);
+          setDetailsPoint(selectedMapPoint);
+        }}
+        onShowAnalysis={() => {
+          setDetailsPoint(null);
+          setAnalysisPoint(selectedMapPoint);
+        }}
       />,
     );
 
@@ -638,6 +612,13 @@ function App() {
       </section>
       {detailsPoint && (
         <PointDetailsDrawer point={detailsPoint} onClose={() => setDetailsPoint(null)} />
+      )}
+      {analysisPoint && (
+        <IndexAnalysisDrawer
+          point={analysisPoint}
+          initialSpecies={activeLayer === 'finferli' ? 'finferli' : 'porcini'}
+          onClose={() => setAnalysisPoint(null)}
+        />
       )}
     </main>
   );
