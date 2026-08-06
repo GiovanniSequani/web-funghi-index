@@ -1,7 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
+import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
+import { useAccountSession } from './account/useAccountSession';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
@@ -28,10 +30,6 @@ const LEGEND_STOPS = [
   { value: '90', label: 'presenza abbondante', color: 'rgba(210, 60, 40, 1)' },
   { value: '100', label: 'presenza abbondante', color: 'rgba(120, 78, 42, 1)' },
 ] as const;
-
-function tileKey(tileSet: TileSet): string {
-  return `${tileSet.date}_v${tileSet.version}`;
-}
 
 function uniqueDates(tileSets: TileSet[]): string[] {
   return [...new Set(tileSets.map((tileSet) => tileSet.date))];
@@ -108,6 +106,8 @@ function App() {
   const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
   const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
+  const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(false);
+  const accountSession = useAccountSession();
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -379,6 +379,25 @@ function App() {
       </div>
 
       <button
+        className={`account-launcher${accountSession.session ? ' is-authenticated' : ''}`}
+        type="button"
+        onClick={() => setAccountArchiveOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={accountArchiveOpen}
+        aria-label={accountSession.session
+          ? `Apri il profilo di ${accountSession.username ?? 'utente'}`
+          : 'Accedi o registrati'}
+      >
+        <span className="account-launcher-icon" aria-hidden="true">
+          <CircleUserRound size={22} />
+        </span>
+        <span className="account-launcher-copy">
+          <small>{accountSession.session ? 'Profilo' : 'FunghiTracker'}</small>
+          <strong>{accountSession.session ? accountSession.username ?? 'ACCOUNT' : 'ACCEDI'}</strong>
+        </span>
+      </button>
+
+      <button
         className="panel-toggle"
         type="button"
         onClick={() => setPanelOpen((open) => !open)}
@@ -444,9 +463,6 @@ function App() {
           </button>
         </header>
 
-        <div className="status-strip" data-tone={tilesError ? 'error' : tilesLoading ? 'loading' : 'ready'}>
-          {tilesLoading ? 'Caricamento tileset' : tilesError ? 'Errore lettura tileset' : `${tileSets.length} tileset disponibili`}
-        </div>
 
         <div className="field-group">
           <span className="label-row">
@@ -569,10 +585,14 @@ function App() {
           )}
         </div>
 
-        <div className="dataset-line">
-          <span>Path</span>
-          <strong>{tileKey(selectedTileSet)}</strong>
+        <div className="status-strip" data-tone={tilesError ? 'error' : tilesLoading ? 'loading' : 'ready'}>
+          {tilesLoading
+            ? 'Caricamento archivio date'
+            : tilesError
+              ? 'Errore lettura archivio date'
+              : `${availableDates.length} date in archivio`}
         </div>
+        {tilesError && <p className="error-text">{tilesError}</p>}
 
         <div className="field-group">
           <span className="label-row">
@@ -593,22 +613,11 @@ function App() {
           </div>
         </div>
 
-        <button className="locate-button" type="button" onClick={locateUser}>
+        <button className="locate-button" type="button" onClick={locateUser} title={locationMessage(locationStatus)}>
           <LocateFixed size={17} aria-hidden="true" />
           Centra posizione
         </button>
 
-        <div className="info-lines">
-          <div>
-            <span>Mappa</span>
-            <strong>{mapReady ? 'Pronta' : 'Inizializzazione'}</strong>
-          </div>
-          <div>
-            <span>Posizione</span>
-            <strong>{locationMessage(locationStatus)}</strong>
-          </div>
-          {tilesError && <p className="error-text">{tilesError}</p>}
-        </div>
       </section>
       {detailsPoint && (
         <PointDetailsDrawer point={detailsPoint} onClose={() => setDetailsPoint(null)} />
@@ -619,6 +628,9 @@ function App() {
           initialSpecies={activeLayer === 'finferli' ? 'finferli' : 'porcini'}
           onClose={() => setAnalysisPoint(null)}
         />
+      )}
+      {accountArchiveOpen && (
+        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} />
       )}
     </main>
   );

@@ -599,7 +599,7 @@ button:focus-visible,
 }
 
 .maplibregl-ctrl-top-right {
-  top: 16px;
+  top: 78px;
   right: 16px;
 }
 
@@ -895,7 +895,7 @@ button:focus-visible,
   }
 
   .maplibregl-ctrl-top-right {
-    top: 10px;
+    top: 58px;
     right: 10px;
   }
 }
