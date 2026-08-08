@@ -180,12 +180,14 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await expect(drawer.locator('.gpx-track-row').first().getByText('1', { exact: true })).toHaveCount(2);
   await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).first().click();
   const routesPanel = page.getByRole('complementary', { name: 'Percorsi sulla mappa' });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Nascondi dalla mappa' })).toBeVisible();
   await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
-  await page.getByRole('button', { name: /Apri il profilo/ }).click();
-  await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).nth(1).click();
+  await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).first().click();
   await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
   await expect(routesPanel.getByText('Anello del Monte')).toBeVisible();
-  await page.getByRole('button', { name: /Apri il profilo/ }).click();
+  await expect(routesPanel.getByText('Porcini 1').first()).toBeVisible();
+  await expect(routesPanel.getByText('Finferli 1').first()).toBeVisible();
   await page.screenshot({ path: `${visualDir}/account-desktop-authenticated.png`, fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });

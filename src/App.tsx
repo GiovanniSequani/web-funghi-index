@@ -319,10 +319,10 @@ function App() {
     if (source) { source.setData(collection); return; }
     map.addSource(GPX_SOURCE_ID, { type: 'geojson', data: collection });
     const lineFilter: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'LineString'];
-    map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': '#102016', 'line-width': 7, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
-    map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 4, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
+    map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': '#102016', 'line-width': 5, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
+    map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 3, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
     map.addLayer({ id: GPX_FINDINGS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'finding'], paint: { 'circle-radius': 6, 'circle-color': ['match', ['get', 'species'], 'porcino', '#8b5a2b', '#f2b84b'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } });
-    map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], paint: { 'circle-radius': 5, 'circle-color': ['match', ['get', 'kind'], 'start', '#38c96b', '#ef6666'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } });
+    map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], layout: { 'text-field': '■', 'text-size': 14, 'text-allow-overlap': true }, paint: { 'text-color': ['match', ['get', 'kind'], 'start', '#00d94f', '#ff2f3d'], 'text-halo-width': 1.5, 'text-halo-color': '#ffffff' } });
   }, [cloudTracks, mapReady]);
 
   React.useEffect(() => { if (!accountSession.session) setCloudTracks([]); }, [accountSession.session]);
@@ -426,7 +426,7 @@ function App() {
       {cloudTracks.length > 0 && (
         <aside className="cloud-tracks-panel" aria-label="Percorsi sulla mappa">
           <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => setCloudTracks([])}>Rimuovi tutti</button></header>
-          <ul>{cloudTracks.map((track) => <li key={track.id}><button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" />{track.name}</button><span>P {track.data.porciniCount} · F {track.data.finferliCount}</span><button type="button" aria-label={`Rimuovi ${track.name} dalla mappa`} onClick={() => setCloudTracks((current) => current.filter((item) => item.id !== track.id))}>×</button></li>)}</ul>
+          <ul>{cloudTracks.map((track) => <li key={track.id}><button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" />{track.name}</button><div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div><button type="button" aria-label={`Rimuovi ${track.name} dalla mappa`} onClick={() => setCloudTracks((current) => current.filter((item) => item.id !== track.id))}>×</button></li>)}</ul>
         </aside>
       )}
 
@@ -682,7 +682,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
+        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
       )}
     </main>
   );

@@ -193,6 +193,7 @@ function TrackRow(props: {
   partialDelete: boolean;
   onDownload: () => void;
   onDisplay: () => void;
+  visibleOnMap: boolean;
   onDelete: () => void;
   detail?: GpxMapData | 'loading' | 'error';
 }) {
@@ -216,7 +217,7 @@ function TrackRow(props: {
       <div className="gpx-track-actions">
         <button type="button" onClick={props.onDisplay} disabled={props.action !== null || props.partialDelete}>
           <MapPinned size={16} aria-hidden="true" />
-          {props.action === 'display' ? 'Apertura…' : 'Mostra sulla mappa'}
+          {props.action === 'display' ? 'Apertura…' : props.visibleOnMap ? 'Nascondi dalla mappa' : 'Mostra sulla mappa'}
         </button>
         <button type="button" onClick={props.onDownload} disabled={props.action !== null || props.partialDelete}>
           <CloudDownload size={16} aria-hidden="true" />
@@ -237,6 +238,8 @@ export function AccountArchiveDrawer(props: {
   initialView?: AuthView;
   onShowTrack: (track: CloudMapTrack) => void;
   onTrackDeleted?: (trackId: string) => void;
+  visibleTrackIds: ReadonlySet<string>;
+  onHideTrack: (trackId: string) => void;
 }) {
   const { sessionState } = props;
   const [authView, setAuthView] = React.useState<AuthView>(props.initialView ?? 'login');
@@ -370,6 +373,7 @@ export function AccountArchiveDrawer(props: {
   };
 
   const handleDisplay = async (track: GpxTrack) => {
+    if (props.visibleTrackIds.has(track.id)) { props.onHideTrack(track.id); return; }
     setTrackActions((current) => ({ ...current, [track.id]: 'display' }));
     setArchiveError(null);
     try {
@@ -377,7 +381,6 @@ export function AccountArchiveDrawer(props: {
       const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
       if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
       props.onShowTrack({ id: track.id, name: track.display_name, data });
-      props.onClose();
     } catch (error) { setArchiveError(toAccountError(error).message); }
     finally {
       setTrackActions((current) => { const next = { ...current }; delete next[track.id]; return next; });
@@ -579,6 +582,7 @@ export function AccountArchiveDrawer(props: {
                     partialDelete={partialDeletes.has(track.id)}
                     onDownload={() => void handleDownload(track)}
                     onDisplay={() => void handleDisplay(track)}
+                    visibleOnMap={props.visibleTrackIds.has(track.id)}
                     onDelete={() => void handleDelete(track)}
                     detail={trackDetails[track.id]}
                   />
