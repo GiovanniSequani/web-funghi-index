@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
+import type { GpxMapData } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
@@ -18,6 +19,9 @@ const TILE_SOURCE_ID = 'funghi-index-source';
 const TILE_LAYER_ID = 'funghi-index-layer';
 const USER_SOURCE_ID = 'user-location-source';
 const USER_LAYER_ID = 'user-location-layer';
+const GPX_SOURCE_ID = 'cloud-gpx-source';
+const GPX_OUTLINE_LAYER_ID = 'cloud-gpx-outline';
+const GPX_LAYER_ID = 'cloud-gpx-line';
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
 const LEGEND_STOPS = [
@@ -108,6 +112,7 @@ function App() {
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
   const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(false);
   const accountSession = useAccountSession();
+  const [cloudTrack, setCloudTrack] = React.useState<{ id: string; name: string; data: GpxMapData } | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -291,6 +296,25 @@ function App() {
     map.setPaintProperty(TILE_LAYER_ID, 'raster-opacity', opacity);
   }, [mapReady, opacity]);
 
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    if (!cloudTrack) {
+      if (map.getLayer(GPX_LAYER_ID)) map.removeLayer(GPX_LAYER_ID);
+      if (map.getLayer(GPX_OUTLINE_LAYER_ID)) map.removeLayer(GPX_OUTLINE_LAYER_ID);
+      if (map.getSource(GPX_SOURCE_ID)) map.removeSource(GPX_SOURCE_ID);
+      return;
+    }
+    const source = map.getSource(GPX_SOURCE_ID) as GeoJSONSource | undefined;
+    if (source) { source.setData(cloudTrack.data); return; }
+    map.addSource(GPX_SOURCE_ID, { type: 'geojson', data: cloudTrack.data });
+    map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, paint: { 'line-color': '#102016', 'line-width': 7, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
+    map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, paint: { 'line-color': '#79e06e', 'line-width': 4, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
+  }, [cloudTrack, mapReady]);
+
+  React.useEffect(() => {
+    if (!accountSession.session) setCloudTrack(null);
+  }, [accountSession.session]);
   const selectDate = (date: string) => {
     setSelectedDate(date);
     const nextVersion = versionsForDate(tileSets, date)[0] ?? DEFAULT_TILE_SET.version;
@@ -377,6 +401,12 @@ function App() {
       <div className="app-banner" aria-hidden="true">
         Indice Funghi
       </div>
+      {cloudTrack && (
+        <div className="cloud-track-banner" role="status">
+          <span><small>Traccia sulla mappa</small><strong>{cloudTrack.name}</strong></span>
+          <button type="button" onClick={() => setCloudTrack(null)}>Nascondi traccia</button>
+        </div>
+      )}
 
       <button
         className={`account-launcher${accountSession.session ? ' is-authenticated' : ''}`}
@@ -630,7 +660,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} />
+        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={setCloudTrack} onTrackDeleted={(id) => setCloudTrack((current) => current?.id === id ? null : current)} />
       )}
     </main>
   );

@@ -49,6 +49,24 @@ export type ArchiveData = {
   tracks: GpxTrack[];
 };
 
+export type GpxMapData = GeoJSON.FeatureCollection<GeoJSON.LineString>;
+
+export type PreparedGpxUpload = {
+  bytes: Uint8Array;
+  compressedSizeBytes: number;
+  uncompressedSizeBytes: number;
+  contentSha256: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  pointCount: number;
+  distanceM: number;
+  bbox: { west: number; south: number; east: number; north: number };
+  mapData: GpxMapData;
+  suggestedName: string;
+};
+
+export type ReserveTrackResult = { id: string; storage_path: string };
+
 export type AccountErrorCode =
   | 'duplicate_username'
   | 'invalid_credentials'
@@ -56,6 +74,10 @@ export type AccountErrorCode =
   | 'quota_exceeded'
   | 'session_expired'
   | 'partial_delete'
+  | 'invalid_gpx'
+  | 'size_exceeded'
+  | 'upload_failed'
+  | 'finalize_failed'
   | 'network'
   | 'unknown';
 

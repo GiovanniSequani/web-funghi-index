@@ -7,9 +7,11 @@ import {
   HardDrive,
   LogIn,
   LogOut,
+  MapPinned,
   RefreshCw,
   ShieldCheck,
   Trash2,
+  Upload,
   UserPlus,
   UserRound,
   X,
@@ -23,8 +25,10 @@ import {
   signIn,
   signOut,
   signUp,
+  uploadPreparedTrack,
 } from './client';
-import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, GpxTrack } from './types';
+import { decodeCloudGpx, prepareImportedGpx } from './gpx';
+import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
 import { normalizeUsername, safeDownloadName, toAccountError, validateUsername } from './validation';
 import './account.css';
 
@@ -185,9 +189,10 @@ function AuthForm(props: {
 
 function TrackRow(props: {
   track: GpxTrack;
-  action: 'download' | 'delete' | null;
+  action: 'download' | 'display' | 'delete' | null;
   partialDelete: boolean;
   onDownload: () => void;
+  onDisplay: () => void;
   onDelete: () => void;
 }) {
   const track = props.track;
@@ -206,6 +211,10 @@ function TrackRow(props: {
         <p className="account-message warning">File eliminato; completa la cancellazione dei metadati.</p>
       )}
       <div className="gpx-track-actions">
+        <button type="button" onClick={props.onDisplay} disabled={props.action !== null || props.partialDelete}>
+          <MapPinned size={16} aria-hidden="true" />
+          {props.action === 'display' ? 'Apertura…' : 'Mostra sulla mappa'}
+        </button>
         <button type="button" onClick={props.onDownload} disabled={props.action !== null || props.partialDelete}>
           <CloudDownload size={16} aria-hidden="true" />
           {props.action === 'download' ? 'Downloadâ€¦' : 'Scarica'}
@@ -223,6 +232,8 @@ export function AccountArchiveDrawer(props: {
   sessionState: AccountSessionState;
   onClose: () => void;
   initialView?: AuthView;
+  onShowTrack: (track: { id: string; name: string; data: GpxMapData }) => void;
+  onTrackDeleted?: (trackId: string) => void;
 }) {
   const { sessionState } = props;
   const [authView, setAuthView] = React.useState<AuthView>(props.initialView ?? 'login');
@@ -233,8 +244,11 @@ export function AccountArchiveDrawer(props: {
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [authNotice, setAuthNotice] = React.useState<string | null>(null);
-  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'delete'>>({});
-  const [partialDeletes, setPartialDeletes] = React.useState<Set<string>>(() => new Set());
+  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'delete'>>({});
+  const [preparedUpload, setPreparedUpload] = React.useState<{ file: File; prepared: PreparedGpxUpload } | null>(null);
+  const [uploadName, setUploadName] = React.useState('');
+  const [uploadBusy, setUploadBusy] = React.useState(false);
+  const [uploadNotice, setUploadNotice] = React.useState<string | null>(null);  const [partialDeletes, setPartialDeletes] = React.useState<Set<string>>(() => new Set());
   const loadSequence = React.useRef(0);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -330,12 +344,48 @@ export function AccountArchiveDrawer(props: {
     }
   };
 
+  const handleDisplay = async (track: GpxTrack) => {
+    setTrackActions((current) => ({ ...current, [track.id]: 'display' }));
+    setArchiveError(null);
+    try {
+      const blob = await downloadTrack(track);
+      const data = await decodeCloudGpx(blob, track.original_filename);
+      if (data.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
+      props.onShowTrack({ id: track.id, name: track.display_name, data });
+      props.onClose();
+    } catch (error) { setArchiveError(toAccountError(error).message); }
+    finally {
+      setTrackActions((current) => { const next = { ...current }; delete next[track.id]; return next; });
+    }
+  };
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file || !archive) return;
+    setUploadBusy(true); setArchiveError(null); setUploadNotice(null); setPreparedUpload(null);
+    try {
+      const prepared = await prepareImportedGpx(file, archive.config);
+      setPreparedUpload({ file, prepared }); setUploadName(prepared.suggestedName);
+    } catch (error) { setArchiveError(toAccountError(error).message); }
+    finally { setUploadBusy(false); }
+  };
+
+  const handleUpload = async () => {
+    if (!preparedUpload) return;
+    setUploadBusy(true); setArchiveError(null); setUploadNotice(null);
+    try {
+      await uploadPreparedTrack({ displayName: uploadName, originalFilename: preparedUpload.file.name, prepared: preparedUpload.prepared });
+      setPreparedUpload(null); setUploadName(''); setUploadNotice('Traccia salvata nel cloud.');
+      await refreshArchive();
+    } catch (error) { setArchiveError(toAccountError(error).message); }
+    finally { setUploadBusy(false); }
+  };
   const handleDelete = async (track: GpxTrack) => {
     if (!partialDeletes.has(track.id) && !window.confirm(`Eliminare definitivamente â€œ${track.display_name}â€?`)) return;
     setTrackActions((current) => ({ ...current, [track.id]: 'delete' }));
     setArchiveError(null);
     try {
       await deleteTrack(track);
+      props.onTrackDeleted?.(track.id);
       setPartialDeletes((current) => {
         const next = new Set(current);
         next.delete(track.id);
@@ -462,9 +512,22 @@ export function AccountArchiveDrawer(props: {
               <p className="account-usage-note">I limiti sono quelli attualmente configurati per il tuo account. La lista mostra esclusivamente le tracce pronte.</p>
             </section>
 
+            <section className="gpx-import">
+              <div className="account-section-heading"><div><p>Da questo dispositivo</p><h2>Importa GPX</h2></div><Upload size={21} aria-hidden="true" /></div>
+              <label className="gpx-file-picker">
+                <input type="file" accept=".gpx,.gpx.gz,application/gpx+xml,application/gzip" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={uploadBusy || !archive} />
+                <span>{uploadBusy && !preparedUpload ? 'Preparazione…' : 'Scegli un file .gpx o .gpx.gz'}</span>
+              </label>
+              {preparedUpload && <div className="gpx-upload-ready">
+                <label>Nome traccia<input value={uploadName} maxLength={120} onChange={(event) => setUploadName(event.target.value)} /></label>
+                <p>{preparedUpload.prepared.pointCount} punti · {formatBytes(preparedUpload.prepared.compressedSizeBytes)} compressi</p>
+                <button className="account-primary" type="button" onClick={() => void handleUpload()} disabled={uploadBusy || !uploadName.trim()}>{uploadBusy ? 'Salvataggio…' : 'Salva nel cloud'}</button>
+              </div>}
+              {uploadNotice && <p className="account-message success" role="status">{uploadNotice}</p>}
+            </section>
             <div className="archive-toolbar">
               <div>
-                <h2>Le tue tracce</h2>
+                <h2>Tracce nel cloud</h2>
                 <p>Sono mostrate solo le tracce pronte.</p>
               </div>
               <button type="button" onClick={() => void refreshArchive()} disabled={loadingArchive} aria-label="Aggiorna archivio">
@@ -495,6 +558,7 @@ export function AccountArchiveDrawer(props: {
                     action={trackActions[track.id] ?? null}
                     partialDelete={partialDeletes.has(track.id)}
                     onDownload={() => void handleDownload(track)}
+                    onDisplay={() => void handleDisplay(track)}
                     onDelete={() => void handleDelete(track)}
                   />
                 ))}

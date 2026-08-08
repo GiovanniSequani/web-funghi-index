@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteTrack, loadArchiveData, signUp } from './client';
-import type { GpxTrack } from './types';
+import { deleteTrack, loadArchiveData, signUp, uploadPreparedTrack } from './client';
+import type { GpxTrack, PreparedGpxUpload } from './types';
 
 const track: GpxTrack = {
   id: '9656ae68-e657-42b0-8f15-c956b6c4d55d',
@@ -97,5 +97,25 @@ describe('account Supabase client', () => {
     expect(readyFilter).toHaveBeenCalledWith('status', 'ready');
     expect(result.config.max_tracks_per_user).toBe(7);
     expect(result.tracks).toEqual([track]);
+  });
+  it('prenota, carica senza upsert e finalizza la traccia', async () => {
+    const calls: string[] = [];
+    const rpc = vi.fn(async (name: string) => {
+      calls.push(name);
+      return name === 'reserve_my_gpx_track'
+        ? { data: { id: track.id, storage_path: track.storage_path }, error: null }
+        : { data: track, error: null };
+    });
+    const upload = vi.fn(async () => { calls.push('storage.upload'); return { error: null }; });
+    const supabase = { rpc, storage: { from: vi.fn(() => ({ upload })) } } as unknown as SupabaseClient;
+    const prepared: PreparedGpxUpload = {
+      bytes: new Uint8Array([1, 2, 3]), compressedSizeBytes: 3, uncompressedSizeBytes: 10,
+      contentSha256: 'a'.repeat(64), startedAt: null, endedAt: null, pointCount: 2,
+      distanceM: 12, bbox: { west: 11, south: 46, east: 11.1, north: 46.1 },
+      suggestedName: 'Bosco', mapData: { type: 'FeatureCollection', features: [] },
+    };
+    await uploadPreparedTrack({ displayName: 'Bosco', originalFilename: 'bosco.gpx', prepared }, supabase);
+    expect(calls).toEqual(['reserve_my_gpx_track', 'storage.upload', 'finalize_my_gpx_track']);
+    expect(upload).toHaveBeenCalledWith(track.storage_path, expect.any(ArrayBuffer), { contentType: 'application/gzip', upsert: false });
   });
 });

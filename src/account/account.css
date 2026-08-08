@@ -655,3 +655,14 @@
   .account-profile-avatar { width: 48px; height: 48px; }
   .account-profile-identity h2 { font-size: 17px; }
 }
+.gpx-import { margin: 15px 0; padding: 15px; border: 1px solid #355039; border-radius: 10px; background: #152218; }
+.gpx-file-picker { display: block; margin-top: 12px; }
+.gpx-file-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.gpx-file-picker span { display: flex; min-height: 40px; align-items: center; justify-content: center; border: 1px dashed #57705b; border-radius: 8px; color: #dce9d5; cursor: pointer; font-size: 12px; font-weight: 800; }
+.gpx-file-picker:focus-within span, .gpx-file-picker:hover span { border-color: #79c76b; background: #1b2b1e; }
+.gpx-upload-ready { display: grid; gap: 9px; margin-top: 12px; }
+.gpx-upload-ready label { display: grid; gap: 5px; color: #aebda8; font-size: 11px; font-weight: 800; }
+.gpx-upload-ready input { min-height: 38px; padding: 0 10px; border: 1px solid #405743; border-radius: 7px; color: #eff5ea; background: #101a12; }
+.gpx-upload-ready p { margin: 0; color: #8fa18a; font-size: 10px; }
+.gpx-track-actions { flex-wrap: wrap; }
+.gpx-track-actions button:first-child { flex-basis: 100%; color: #b8e9af; border-color: #46754a; }

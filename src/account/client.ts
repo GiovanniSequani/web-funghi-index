@@ -1,6 +1,6 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import { getSupabasePublicConfig } from '../pointDetails/supabaseConfig';
-import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxTrack, type UserProfile } from './types';
+import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
 import { normalizeUsername, toAccountError } from './validation';
 
 const TRACK_COLUMNS = [
@@ -114,6 +114,51 @@ export async function downloadTrack(track: GpxTrack): Promise<Blob> {
   return data;
 }
 
+async function rollbackReservation(reservation: ReserveTrackResult, supabase: SupabaseClient, removeObject: boolean) {
+  try {
+    if (removeObject) {
+      const { error } = await supabase.storage.from('user-gpx').remove([reservation.storage_path]);
+      if (error && !isMissingStorageObject(error)) return false;
+    }
+    const { error } = await supabase.rpc('delete_my_gpx_track_metadata', { p_track_id: reservation.id });
+    return !error;
+  } catch { return false; }
+}
+
+export async function uploadPreparedTrack(
+  input: { displayName: string; originalFilename: string; prepared: PreparedGpxUpload },
+  supabase: SupabaseClient = getAccountSupabaseClient(),
+): Promise<GpxTrack> {
+  const prepared = input.prepared;
+  const { data, error: reserveError } = await supabase.rpc('reserve_my_gpx_track', {
+    p_display_name: input.displayName.trim().slice(0, 120) || prepared.suggestedName,
+    p_original_filename: input.originalFilename,
+    p_compressed_size_bytes: prepared.compressedSizeBytes,
+    p_content_sha256: prepared.contentSha256,
+    p_uncompressed_size_bytes: prepared.uncompressedSizeBytes,
+    p_started_at: prepared.startedAt,
+    p_ended_at: prepared.endedAt,
+    p_point_count: prepared.pointCount,
+    p_distance_m: prepared.distanceM,
+    p_bbox: prepared.bbox,
+  });
+  if (reserveError) throw toAccountError(reserveError);
+  const reservation = data as ReserveTrackResult;
+  if (!reservation?.id || !reservation.storage_path) throw new AccountArchiveError('unknown', 'Il server non ha restituito una prenotazione valida.');
+  const { error: uploadError } = await supabase.storage.from('user-gpx').upload(
+    reservation.storage_path, prepared.bytes.slice().buffer, { contentType: 'application/gzip', upsert: false },
+  );
+  if (uploadError) {
+    const released = await rollbackReservation(reservation, supabase, true);
+    throw new AccountArchiveError('upload_failed', released ? 'Caricamento non riuscito. La prenotazione è stata annullata: riprova.' : 'Caricamento non riuscito e la prenotazione non è stata liberata. Riprova più tardi.', { cause: uploadError, partial: !released });
+  }
+  const { data: finalized, error: finalizeError } = await supabase.rpc('finalize_my_gpx_track', { p_track_id: reservation.id });
+  if (finalizeError) {
+    const released = await rollbackReservation(reservation, supabase, true);
+    throw new AccountArchiveError('finalize_failed', released ? 'Il caricamento non è stato finalizzato ed è stato annullato. Riprova.' : 'Il file è stato caricato, ma la finalizzazione non è completa. Aggiorna l’archivio prima di riprovare.', { cause: finalizeError, partial: !released });
+  }
+  return finalized as GpxTrack;
+}
 function isMissingStorageObject(error: unknown): boolean {
   const candidate = error as { statusCode?: string | number; status?: number; message?: string };
   return candidate?.status === 404

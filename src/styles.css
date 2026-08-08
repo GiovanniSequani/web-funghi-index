@@ -899,3 +899,10 @@ button:focus-visible,
     right: 10px;
   }
 }
+
+.cloud-track-banner { position: absolute; z-index: 8; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; max-width: min(440px, calc(100vw - 24px)); padding: 9px 10px 9px 13px; border: 1px solid rgba(121,224,110,.55); border-radius: 10px; background: rgba(16,30,18,.94); box-shadow: 0 8px 24px rgba(0,0,0,.3); color: #eef7e9; }
+.cloud-track-banner span { min-width: 0; display: grid; }
+.cloud-track-banner small { color: #93aa8d; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.cloud-track-banner strong { overflow: hidden; max-width: 230px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-track-banner button { flex: 0 0 auto; min-height: 32px; padding: 0 10px; border: 1px solid #4d704f; border-radius: 7px; color: #ccecc5; background: #1b2a1d; cursor: pointer; font-size: 10px; font-weight: 800; }
+@media (max-width: 760px) { .cloud-track-banner { bottom: 12px; width: calc(100vw - 24px); justify-content: space-between; } .cloud-track-banner strong { max-width: 46vw; } }
