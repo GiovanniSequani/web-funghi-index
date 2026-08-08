@@ -28,7 +28,7 @@ import {
   uploadPreparedTrack,
 } from './client';
 import { decodeCloudGpx, prepareImportedGpx } from './gpx';
-import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
+import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, CloudMapTrack, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
 import { normalizeUsername, safeDownloadName, toAccountError, validateUsername } from './validation';
 import './account.css';
 
@@ -194,6 +194,7 @@ function TrackRow(props: {
   onDownload: () => void;
   onDisplay: () => void;
   onDelete: () => void;
+  detail?: GpxMapData | 'loading' | 'error';
 }) {
   const track = props.track;
   return (
@@ -204,6 +205,8 @@ function TrackRow(props: {
       </div>
       <dl>
         <div><dt>Dimensione</dt><dd>{formatBytes(track.compressed_size_bytes)}</dd></div>
+        <div><dt>Porcini</dt><dd>{props.detail === 'loading' || props.detail === undefined ? '…' : typeof props.detail === 'object' ? props.detail.porciniCount : '—'}</dd></div>
+        <div><dt>Finferli</dt><dd>{props.detail === 'loading' || props.detail === undefined ? '…' : typeof props.detail === 'object' ? props.detail.finferliCount : '—'}</dd></div>
         {track.distance_m !== null && <div><dt>Distanza</dt><dd>{numberFormatter.format(track.distance_m / 1000)} km</dd></div>}
         {track.point_count !== null && <div><dt>Punti</dt><dd>{numberFormatter.format(track.point_count)}</dd></div>}
       </dl>
@@ -232,7 +235,7 @@ export function AccountArchiveDrawer(props: {
   sessionState: AccountSessionState;
   onClose: () => void;
   initialView?: AuthView;
-  onShowTrack: (track: { id: string; name: string; data: GpxMapData }) => void;
+  onShowTrack: (track: CloudMapTrack) => void;
   onTrackDeleted?: (trackId: string) => void;
 }) {
   const { sessionState } = props;
@@ -248,7 +251,10 @@ export function AccountArchiveDrawer(props: {
   const [preparedUpload, setPreparedUpload] = React.useState<{ file: File; prepared: PreparedGpxUpload } | null>(null);
   const [uploadName, setUploadName] = React.useState('');
   const [uploadBusy, setUploadBusy] = React.useState(false);
-  const [uploadNotice, setUploadNotice] = React.useState<string | null>(null);  const [partialDeletes, setPartialDeletes] = React.useState<Set<string>>(() => new Set());
+  const [uploadNotice, setUploadNotice] = React.useState<string | null>(null);
+  const [usageOpen, setUsageOpen] = React.useState(false);
+  const [trackDetails, setTrackDetails] = React.useState<Record<string, GpxMapData | 'loading' | 'error'>>({});
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);  const [partialDeletes, setPartialDeletes] = React.useState<Set<string>>(() => new Set());
   const loadSequence = React.useRef(0);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -305,6 +311,25 @@ export function AccountArchiveDrawer(props: {
     void refreshArchive();
   }, [refreshArchive, sessionState.session]);
 
+  React.useEffect(() => {
+    if (!archive) return;
+    let active = true;
+    const pending = archive.tracks.filter((track) => !trackDetails[track.id]);
+    if (pending.length === 0) return;
+    setTrackDetails((current) => Object.fromEntries([...Object.entries(current), ...pending.map((track) => [track.id, 'loading' as const])]));
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(3, pending.length) }, async () => {
+      while (cursor < pending.length && active) {
+        const track = pending[cursor++];
+        try {
+          const data = await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+          if (active) setTrackDetails((current) => ({ ...current, [track.id]: data }));
+        } catch { if (active) setTrackDetails((current) => ({ ...current, [track.id]: 'error' })); }
+      }
+    });
+    void Promise.all(workers);
+    return () => { active = false; };
+  }, [archive]);
   const runAuth = async (action: () => Promise<void>) => {
     setAuthBusy(true);
     setAuthError(null);
@@ -348,9 +373,9 @@ export function AccountArchiveDrawer(props: {
     setTrackActions((current) => ({ ...current, [track.id]: 'display' }));
     setArchiveError(null);
     try {
-      const blob = await downloadTrack(track);
-      const data = await decodeCloudGpx(blob, track.original_filename);
-      if (data.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
+      const cached = trackDetails[track.id];
+      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+      if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
       props.onShowTrack({ id: track.id, name: track.display_name, data });
       props.onClose();
     } catch (error) { setArchiveError(toAccountError(error).message); }
@@ -478,12 +503,15 @@ export function AccountArchiveDrawer(props: {
                 <p>{sessionState.session.user.email}</p>
               </div>
               <span className="account-active-badge">Attivo</span>
+              <button type="button" onClick={() => setUsageOpen((open) => !open)} aria-expanded={usageOpen}>
+                <HardDrive size={16} aria-hidden="true" /> Utilizzo account
+              </button>
               <button type="button" onClick={() => void runAuth(signOut)} disabled={authBusy}>
                 <LogOut size={16} aria-hidden="true" /> Esci
               </button>
             </section>
 
-            <section className="account-usage">
+            {usageOpen && <section className="account-usage">
               <div className="account-section-heading">
                 <div>
                   <p>Utilizzo account</p>
@@ -510,30 +538,22 @@ export function AccountArchiveDrawer(props: {
                 </div>
               </div>
               <p className="account-usage-note">I limiti sono quelli attualmente configurati per il tuo account. La lista mostra esclusivamente le tracce pronte.</p>
-            </section>
+            </section>}
 
-            <section className="gpx-import">
-              <div className="account-section-heading"><div><p>Da questo dispositivo</p><h2>Importa GPX</h2></div><Upload size={21} aria-hidden="true" /></div>
-              <label className="gpx-file-picker">
-                <input type="file" accept=".gpx,.gpx.gz,application/gpx+xml,application/gzip" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={uploadBusy || !archive} />
-                <span>{uploadBusy && !preparedUpload ? 'Preparazione…' : 'Scegli un file .gpx o .gpx.gz'}</span>
-              </label>
-              {preparedUpload && <div className="gpx-upload-ready">
-                <label>Nome traccia<input value={uploadName} maxLength={120} onChange={(event) => setUploadName(event.target.value)} /></label>
-                <p>{preparedUpload.prepared.pointCount} punti · {formatBytes(preparedUpload.prepared.compressedSizeBytes)} compressi</p>
-                <button className="account-primary" type="button" onClick={() => void handleUpload()} disabled={uploadBusy || !uploadName.trim()}>{uploadBusy ? 'Salvataggio…' : 'Salva nel cloud'}</button>
-              </div>}
-              {uploadNotice && <p className="account-message success" role="status">{uploadNotice}</p>}
-            </section>
             <div className="archive-toolbar">
-              <div>
-                <h2>Tracce nel cloud</h2>
-                <p>Sono mostrate solo le tracce pronte.</p>
+              <div><h2>Archivio</h2><p>Percorsi salvati in cloud</p></div>
+              <div className="archive-toolbar-actions">
+                <input ref={fileInputRef} className="gpx-hidden-input" type="file" accept=".gpx,.gpx.gz,application/gpx+xml,application/gzip" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={uploadBusy || !archive} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadBusy || !archive} aria-label="Importa GPX"><Upload size={17} aria-hidden="true" /></button>
+                <button type="button" onClick={() => void refreshArchive()} disabled={loadingArchive} aria-label="Aggiorna archivio"><RefreshCw size={17} aria-hidden="true" /></button>
               </div>
-              <button type="button" onClick={() => void refreshArchive()} disabled={loadingArchive} aria-label="Aggiorna archivio">
-                <RefreshCw size={17} aria-hidden="true" />
-              </button>
             </div>
+            {preparedUpload && <div className="gpx-upload-ready compact">
+              <label>Nome traccia<input value={uploadName} maxLength={120} onChange={(event) => setUploadName(event.target.value)} /></label>
+              <p>{preparedUpload.prepared.pointCount} punti · {formatBytes(preparedUpload.prepared.compressedSizeBytes)} compressi</p>
+              <button className="account-primary" type="button" onClick={() => void handleUpload()} disabled={uploadBusy || !uploadName.trim()}>{uploadBusy ? 'Salvataggio…' : 'Salva nel cloud'}</button>
+            </div>}
+            {uploadNotice && <p className="account-message success" role="status">{uploadNotice}</p>}
 
             {archiveError && (
               <div className="account-error-block" role="alert">
@@ -560,6 +580,7 @@ export function AccountArchiveDrawer(props: {
                     onDownload={() => void handleDownload(track)}
                     onDisplay={() => void handleDisplay(track)}
                     onDelete={() => void handleDelete(track)}
+                    detail={trackDetails[track.id]}
                   />
                 ))}
               </ul>

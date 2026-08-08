@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gzipSync } from 'node:zlib';
 
 const visualDir = 'node_modules/.cache/visual-checks';
 
@@ -102,6 +103,11 @@ async function mockAuthenticatedAccount(page: Page) {
   );
 }
 
+async function mockGpxDownloads(page: Page) {
+  const xml = '<?xml version="1.0"?><gpx><trk><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.01" lon="11.02"/></trkseg></trk><wpt lat="46.002" lon="11.003"><name>Porcino_1</name><type>Porcino</type></wpt><wpt lat="46.004" lon="11.006"><name>Finferlo_1</name><type>Finferlo</type></wpt></gpx>';
+  const body = gzipSync(Buffer.from(xml));
+  await page.route('**/storage/v1/object/user-gpx/**', (route) => route.fulfill({ contentType: 'application/gzip', body }));
+}
 async function assertNavigationBelowProfile(page: Page) {
   const launcher = page.locator('.account-launcher');
   const navigation = page.locator('.maplibregl-ctrl-top-right');
@@ -150,6 +156,7 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await page.setViewportSize({ width: 1280, height: 850 });
   await mockPublicData(page);
   await mockAuthenticatedAccount(page);
+  await mockGpxDownloads(page);
   await page.goto('/');
   const canvas = page.locator('.maplibregl-canvas');
   await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'profile-original'));
@@ -162,6 +169,7 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
 
   await expect(drawer.getByRole('heading', { name: 'mario_rossi' })).toBeVisible();
   await expect(drawer.getByText('mario@example.test')).toBeVisible();
+  await drawer.getByRole('button', { name: 'Utilizzo account' }).click();
   await expect(drawer.getByText('Tracce pronte', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Limite tracce', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Massimo per file', { exact: true })).toBeVisible();
@@ -169,6 +177,15 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await expect(drawer.getByText('Bosco del Cansiglio')).toBeVisible();
   await expect(drawer.getByText('Anello del Monte')).toBeVisible();
   await expect(page.locator('.account-launcher strong')).toHaveText('mario_rossi');
+  await expect(drawer.locator('.gpx-track-row').first().getByText('1', { exact: true })).toHaveCount(2);
+  await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).first().click();
+  const routesPanel = page.getByRole('complementary', { name: 'Percorsi sulla mappa' });
+  await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
+  await page.getByRole('button', { name: /Apri il profilo/ }).click();
+  await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).nth(1).click();
+  await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
+  await expect(routesPanel.getByText('Anello del Monte')).toBeVisible();
+  await page.getByRole('button', { name: /Apri il profilo/ }).click();
   await page.screenshot({ path: `${visualDir}/account-desktop-authenticated.png`, fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });

@@ -666,3 +666,9 @@
 .gpx-upload-ready p { margin: 0; color: #8fa18a; font-size: 10px; }
 .gpx-track-actions { flex-wrap: wrap; }
 .gpx-track-actions button:first-child { flex-basis: 100%; color: #b8e9af; border-color: #46754a; }
+.archive-toolbar-actions { display: flex !important; align-items: center; gap: 7px !important; }
+.gpx-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.gpx-upload-ready.compact { margin: 0 0 13px; padding: 12px; border: 1px solid #355039; border-radius: 9px; background: #152218; }
+.account-profile-card button:nth-of-type(1) { grid-column: 2; }
+.account-profile-card button:nth-of-type(2) { grid-column: 3; }
+@media (max-width: 420px) { .account-profile-card button:nth-of-type(1), .account-profile-card button:nth-of-type(2) { grid-column: 2 / -1; } }

@@ -49,7 +49,24 @@ export type ArchiveData = {
   tracks: GpxTrack[];
 };
 
-export type GpxMapData = GeoJSON.FeatureCollection<GeoJSON.LineString>;
+export type GpxMarker = {
+  latitude: number;
+  longitude: number;
+  name: string;
+  species: 'porcino' | 'finferlo' | null;
+};
+
+export type GpxMapData = {
+  lines: GeoJSON.FeatureCollection<GeoJSON.LineString>;
+  findings: GeoJSON.FeatureCollection<GeoJSON.Point, { species: 'porcino' | 'finferlo'; name: string }>;
+  start: [number, number];
+  end: [number, number];
+  bbox: [number, number, number, number];
+  porciniCount: number;
+  finferliCount: number;
+};
+
+export type CloudMapTrack = { id: string; name: string; data: GpxMapData };
 
 export type PreparedGpxUpload = {
   bytes: Uint8Array;

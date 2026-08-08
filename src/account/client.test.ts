@@ -112,7 +112,7 @@ describe('account Supabase client', () => {
       bytes: new Uint8Array([1, 2, 3]), compressedSizeBytes: 3, uncompressedSizeBytes: 10,
       contentSha256: 'a'.repeat(64), startedAt: null, endedAt: null, pointCount: 2,
       distanceM: 12, bbox: { west: 11, south: 46, east: 11.1, north: 46.1 },
-      suggestedName: 'Bosco', mapData: { type: 'FeatureCollection', features: [] },
+      suggestedName: 'Bosco', mapData: { lines: { type: 'FeatureCollection', features: [] }, findings: { type: 'FeatureCollection', features: [] }, start: [0, 0], end: [0, 0], bbox: [0, 0, 0, 0], porciniCount: 0, finferliCount: 0 },
     };
     await uploadPreparedTrack({ displayName: 'Bosco', originalFilename: 'bosco.gpx', prepared }, supabase);
     expect(calls).toEqual(['reserve_my_gpx_track', 'storage.upload', 'finalize_my_gpx_track']);
