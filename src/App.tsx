@@ -243,10 +243,12 @@ function App() {
         point={selectedMapPoint}
         onClose={() => popup.remove()}
         onShowData={() => {
+          setAccountArchiveOpen(false);
           setAnalysisPoint(null);
           setDetailsPoint(selectedMapPoint);
         }}
         onShowAnalysis={() => {
+          setAccountArchiveOpen(false);
           setDetailsPoint(null);
           setAnalysisPoint(selectedMapPoint);
         }}
