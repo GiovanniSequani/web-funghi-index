@@ -1,7 +1,7 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import { getSupabasePublicConfig } from '../pointDetails/supabaseConfig';
 import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
-import { normalizeUsername, toAccountError } from './validation';
+import { normalizeTrackName, normalizeUsername, toAccountError, validateTrackName } from './validation';
 
 const TRACK_COLUMNS = [
   'id',
@@ -130,8 +130,11 @@ export async function uploadPreparedTrack(
   supabase: SupabaseClient = getAccountSupabaseClient(),
 ): Promise<GpxTrack> {
   const prepared = input.prepared;
+  const nameError = validateTrackName(input.displayName);
+  if (nameError) throw new AccountArchiveError('invalid_track_name', nameError);
+  const displayName = normalizeTrackName(input.displayName);
   const { data, error: reserveError } = await supabase.rpc('reserve_my_gpx_track', {
-    p_display_name: input.displayName.trim().slice(0, 120) || prepared.suggestedName,
+    p_display_name: displayName,
     p_original_filename: input.originalFilename,
     p_compressed_size_bytes: prepared.compressedSizeBytes,
     p_content_sha256: prepared.contentSha256,
@@ -158,6 +161,21 @@ export async function uploadPreparedTrack(
     throw new AccountArchiveError('finalize_failed', released ? 'Il caricamento non è stato finalizzato ed è stato annullato. Riprova.' : 'Il file è stato caricato, ma la finalizzazione non è completa. Aggiorna l’archivio prima di riprovare.', { cause: finalizeError, partial: !released });
   }
   return finalized as GpxTrack;
+}
+export async function renameTrack(
+  track: GpxTrack,
+  newName: string,
+  supabase: SupabaseClient = getAccountSupabaseClient(),
+): Promise<GpxTrack> {
+  const nameError = validateTrackName(newName);
+  if (nameError) throw new AccountArchiveError('invalid_track_name', nameError);
+  const { data, error } = await supabase.rpc('rename_my_gpx_track', {
+    p_track_id: track.id,
+    p_new_name: normalizeTrackName(newName),
+  });
+  if (error) throw toAccountError(error);
+  if (!data) throw new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna l’archivio e riprova.');
+  return data as GpxTrack;
 }
 function isMissingStorageObject(error: unknown): boolean {
   const candidate = error as { statusCode?: string | number; status?: number; message?: string };

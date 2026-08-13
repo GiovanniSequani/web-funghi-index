@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteTrack, loadArchiveData, signUp, uploadPreparedTrack } from './client';
+import { deleteTrack, loadArchiveData, renameTrack, signUp, uploadPreparedTrack } from './client';
 import type { GpxTrack, PreparedGpxUpload } from './types';
 
 const track: GpxTrack = {
@@ -117,5 +117,26 @@ describe('account Supabase client', () => {
     await uploadPreparedTrack({ displayName: 'Bosco', originalFilename: 'bosco.gpx', prepared }, supabase);
     expect(calls).toEqual(['reserve_my_gpx_track', 'storage.upload', 'finalize_my_gpx_track']);
     expect(upload).toHaveBeenCalledWith(track.storage_path, expect.any(ArrayBuffer), { contentType: 'application/gzip', upsert: false });
+  });
+  it('rinomina solo i metadati tramite RPC senza modificare il path Storage', async () => {
+    const renamed = { ...track, display_name: 'Bosco serale' };
+    const rpc = vi.fn().mockResolvedValue({ data: renamed, error: null });
+    const supabase = { rpc } as unknown as SupabaseClient;
+
+    const result = await renameTrack(track, '  Bosco serale  ', supabase);
+
+    expect(rpc).toHaveBeenCalledWith('rename_my_gpx_track', {
+      p_track_id: track.id,
+      p_new_name: 'Bosco serale',
+    });
+    expect(result.storage_path).toBe(track.storage_path);
+    expect(result.display_name).toBe('Bosco serale');
+  });
+
+  it('rifiuta nomi non validi prima di chiamare la RPC', async () => {
+    const rpc = vi.fn();
+    const supabase = { rpc } as unknown as SupabaseClient;
+    await expect(renameTrack(track, 'cartella/bosco', supabase)).rejects.toMatchObject({ code: 'invalid_track_name' });
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

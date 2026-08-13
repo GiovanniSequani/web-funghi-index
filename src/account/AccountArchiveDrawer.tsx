@@ -8,6 +8,7 @@ import {
   LogIn,
   LogOut,
   MapPinned,
+  Pencil,
   RefreshCw,
   ShieldCheck,
   Trash2,
@@ -25,11 +26,12 @@ import {
   signIn,
   signOut,
   signUp,
+  renameTrack,
   uploadPreparedTrack,
 } from './client';
 import { decodeCloudGpx, prepareImportedGpx } from './gpx';
 import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, CloudMapTrack, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
-import { normalizeUsername, safeDownloadName, toAccountError, validateUsername } from './validation';
+import { normalizeTrackName, normalizeUsername, safeDownloadName, toAccountError, validateTrackName, validateUsername } from './validation';
 import './account.css';
 
 type AuthView = 'login' | 'register';
@@ -189,12 +191,19 @@ function AuthForm(props: {
 
 function TrackRow(props: {
   track: GpxTrack;
-  action: 'download' | 'display' | 'delete' | null;
+  action: 'download' | 'display' | 'rename' | 'delete' | null;
   partialDelete: boolean;
   onDownload: () => void;
   onDisplay: () => void;
   visibleOnMap: boolean;
   onDelete: () => void;
+  onRename: () => void;
+  renaming: boolean;
+  renameName: string;
+  renameError: string | null;
+  onRenameNameChange: (value: string) => void;
+  onRenameSave: () => void;
+  onRenameCancel: () => void;
   detail?: GpxMapData | 'loading' | 'error';
 }) {
   const track = props.track;
@@ -204,6 +213,13 @@ function TrackRow(props: {
         <strong>{track.display_name}</strong>
         <span>{dateFormatter.format(new Date(track.ready_at ?? track.created_at))}</span>
       </div>
+      {props.renaming && (
+        <div className="gpx-rename-form">
+          <label>Nuovo nome<input autoFocus value={props.renameName} maxLength={120} onChange={(event) => props.onRenameNameChange(event.target.value)} /></label>
+          {props.renameError && <p className="account-message error" role="alert">{props.renameError}</p>}
+          <div><button type="button" onClick={props.onRenameCancel}>Annulla</button><button type="button" onClick={props.onRenameSave} disabled={props.action === 'rename'}>{props.action === 'rename' ? 'Salvataggio…' : 'Salva nome'}</button></div>
+        </div>
+      )}
       <dl>
         <div><dt>Dimensione</dt><dd>{formatBytes(track.compressed_size_bytes)}</dd></div>
         <div><dt>Porcini</dt><dd>{props.detail === 'loading' || props.detail === undefined ? '…' : typeof props.detail === 'object' ? props.detail.porciniCount : '—'}</dd></div>
@@ -218,6 +234,10 @@ function TrackRow(props: {
         <button type="button" onClick={props.onDisplay} disabled={props.action !== null || props.partialDelete}>
           <MapPinned size={16} aria-hidden="true" />
           {props.action === 'display' ? 'Apertura…' : props.visibleOnMap ? 'Nascondi dalla mappa' : 'Mostra sulla mappa'}
+        </button>
+        <button type="button" onClick={props.onRename} disabled={props.action !== null || props.partialDelete || props.renaming}>
+          <Pencil size={16} aria-hidden="true" />
+          Rinomina
         </button>
         <button type="button" onClick={props.onDownload} disabled={props.action !== null || props.partialDelete}>
           <CloudDownload size={16} aria-hidden="true" />
@@ -238,6 +258,7 @@ export function AccountArchiveDrawer(props: {
   initialView?: AuthView;
   onShowTrack: (track: CloudMapTrack) => void;
   onTrackDeleted?: (trackId: string) => void;
+  onTrackRenamed?: (trackId: string, name: string) => void;
   visibleTrackIds: ReadonlySet<string>;
   onHideTrack: (trackId: string) => void;
 }) {
@@ -250,11 +271,14 @@ export function AccountArchiveDrawer(props: {
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [authNotice, setAuthNotice] = React.useState<string | null>(null);
-  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'delete'>>({});
+  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'rename' | 'delete'>>({});
   const [preparedUpload, setPreparedUpload] = React.useState<{ file: File; prepared: PreparedGpxUpload } | null>(null);
   const [uploadName, setUploadName] = React.useState('');
   const [uploadBusy, setUploadBusy] = React.useState(false);
   const [uploadNotice, setUploadNotice] = React.useState<string | null>(null);
+  const [renamingTrackId, setRenamingTrackId] = React.useState<string | null>(null);
+  const [renameName, setRenameName] = React.useState('');
+  const [renameError, setRenameError] = React.useState<string | null>(null);
   const [usageOpen, setUsageOpen] = React.useState(false);
   const [trackDetails, setTrackDetails] = React.useState<Record<string, GpxMapData | 'loading' | 'error'>>({});
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);  const [partialDeletes, setPartialDeletes] = React.useState<Set<string>>(() => new Set());
@@ -399,13 +423,50 @@ export function AccountArchiveDrawer(props: {
 
   const handleUpload = async () => {
     if (!preparedUpload) return;
+    const validationError = validateTrackName(uploadName);
+    if (validationError) { setArchiveError(validationError); return; }
     setUploadBusy(true); setArchiveError(null); setUploadNotice(null);
     try {
       await uploadPreparedTrack({ displayName: uploadName, originalFilename: preparedUpload.file.name, prepared: preparedUpload.prepared });
       setPreparedUpload(null); setUploadName(''); setUploadNotice('Traccia salvata nel cloud.');
       await refreshArchive();
-    } catch (error) { setArchiveError(toAccountError(error).message); }
-    finally { setUploadBusy(false); }
+    } catch (error) {
+      const normalized = toAccountError(error);
+      setArchiveError(normalized.message);
+      if (normalized.code === 'session_expired') void getAccountSupabaseClient().auth.signOut();
+    } finally { setUploadBusy(false); }
+  };
+  const startRename = (track: GpxTrack) => {
+    setRenamingTrackId(track.id);
+    setRenameName(track.display_name);
+    setRenameError(null);
+  };
+
+  const cancelRename = () => {
+    setRenamingTrackId(null);
+    setRenameName('');
+    setRenameError(null);
+  };
+
+  const saveRename = async (track: GpxTrack) => {
+    const validationError = validateTrackName(renameName);
+    if (validationError) { setRenameError(validationError); return; }
+    setTrackActions((current) => ({ ...current, [track.id]: 'rename' }));
+    setRenameError(null);
+    try {
+      const updated = await renameTrack(track, renameName);
+      const normalizedName = updated.display_name || normalizeTrackName(renameName);
+      setArchive((current) => current ? { ...current, tracks: current.tracks.map((item) => item.id === track.id ? { ...item, ...updated, display_name: normalizedName, storage_path: item.storage_path } : item) } : current);
+      props.onTrackRenamed?.(track.id, normalizedName);
+      cancelRename();
+    } catch (error) {
+      const normalized = toAccountError(error);
+      setRenameError(normalized.message);
+      if (normalized.code === 'track_not_found') void refreshArchive();
+      if (normalized.code === 'session_expired') void getAccountSupabaseClient().auth.signOut();
+    } finally {
+      setTrackActions((current) => { const next = { ...current }; delete next[track.id]; return next; });
+    }
   };
   const handleDelete = async (track: GpxTrack) => {
     if (!partialDeletes.has(track.id) && !window.confirm(`Eliminare definitivamente â€œ${track.display_name}â€?`)) return;
@@ -584,7 +645,13 @@ export function AccountArchiveDrawer(props: {
                     onDisplay={() => void handleDisplay(track)}
                     visibleOnMap={props.visibleTrackIds.has(track.id)}
                     onDelete={() => void handleDelete(track)}
-                    detail={trackDetails[track.id]}
+                    onRename={() => startRename(track)}
+                    renaming={renamingTrackId === track.id}
+                    renameName={renamingTrackId === track.id ? renameName : track.display_name}
+                    renameError={renamingTrackId === track.id ? renameError : null}
+                    onRenameNameChange={(value) => { setRenameName(value); setRenameError(null); }}
+                    onRenameSave={() => void saveRename(track)}
+                    onRenameCancel={cancelRename}                    detail={trackDetails[track.id]}
                   />
                 ))}
               </ul>

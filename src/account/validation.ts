@@ -12,6 +12,16 @@ export function validateUsername(value: string): string | null {
     : 'Usa 3-24 caratteri: lettere minuscole, numeri o underscore.';
 }
 
+export function normalizeTrackName(value: string): string {
+  return value.trim();
+}
+
+export function validateTrackName(value: string): string | null {
+  const normalized = normalizeTrackName(value);
+  if (normalized.length < 1 || normalized.length > 120) return 'Il nome deve contenere da 1 a 120 caratteri.';
+  if(/[\u0000-\u001f\u007f/\\]/.test(normalized)) return 'Il nome non può contenere caratteri di controllo, / o \\.';
+  return null;
+}
 type ErrorLike = {
   message?: string;
   status?: number;
@@ -36,6 +46,12 @@ export function toAccountError(error: unknown): AccountArchiveError {
   }
   if (/quota.*exceed/.test(message)) {
     return new AccountArchiveError('quota_exceeded', 'Hai raggiunto il limite di tracce configurato.', { cause: error });
+  }
+  if (/track.*not found|traccia.*non trovata|no rows|not found/.test(message)) {
+    return new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna l’archivio e riprova.', { cause: error });
+  }
+  if (/display.?name|track.?name|invalid.*name|nome.*non valid/.test(message)) {
+    return new AccountArchiveError('invalid_track_name', 'Il nome della traccia non è valido.', { cause: error });
   }
   if (/username|duplicate|unique|database error saving new user/.test(message)) {
     return new AccountArchiveError('duplicate_username', 'Username già in uso. Scegline un altro.', { cause: error });

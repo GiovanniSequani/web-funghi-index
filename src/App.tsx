@@ -684,7 +684,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
+        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
       )}
     </main>
   );

@@ -95,6 +95,8 @@ export type AccountErrorCode =
   | 'size_exceeded'
   | 'upload_failed'
   | 'finalize_failed'
+  | 'invalid_track_name'
+  | 'track_not_found'
   | 'network'
   | 'unknown';
 

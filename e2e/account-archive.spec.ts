@@ -101,12 +101,21 @@ async function mockAuthenticatedAccount(page: Page) {
       ]),
     }),
   );
+  await page.route('**/rest/v1/rpc/rename_my_gpx_track', async (route) => {
+    const payload = route.request().postDataJSON() as { p_track_id: string; p_new_name: string };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: payload.p_track_id, display_name: payload.p_new_name }) });
+  });
+  await page.route('**/rest/v1/rpc/reserve_my_gpx_track', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'uploaded-track', storage_path: `${user.id}/uploaded-track.gpx.gz` }) }));
+  await page.route('**/rest/v1/rpc/finalize_my_gpx_track', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'uploaded-track', display_name: 'Sentiero importato', storage_path: `${user.id}/uploaded-track.gpx.gz`, status: 'ready' }) }));
 }
 
 async function mockGpxDownloads(page: Page) {
   const xml = '<?xml version="1.0"?><gpx><trk><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.01" lon="11.02"/></trkseg></trk><wpt lat="46.002" lon="11.003"><name>Porcino_1</name><type>Porcino</type></wpt><wpt lat="46.004" lon="11.006"><name>Finferlo_1</name><type>Finferlo</type></wpt></gpx>';
   const body = gzipSync(Buffer.from(xml));
-  await page.route('**/storage/v1/object/user-gpx/**', (route) => route.fulfill({ contentType: 'application/gzip', body }));
+  await page.route('**/storage/v1/object/user-gpx/**', (route) => {
+    if (route.request().method() === 'POST') return route.fulfill({ contentType: 'application/json', body: '{}' });
+    return route.fulfill({ contentType: 'application/gzip', body });
+  });
 }
 async function assertNavigationBelowProfile(page: Page) {
   const launcher = page.locator('.account-launcher');
@@ -176,15 +185,27 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await expect(drawer.getByText('GPX non compresso', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Bosco del Cansiglio')).toBeVisible();
   await expect(drawer.getByText('Anello del Monte')).toBeVisible();
+  await drawer.getByRole('button', { name: 'Importa GPX' }).click();
+  await drawer.locator('.gpx-hidden-input').setInputFiles({
+    name: 'locale.gpx', mimeType: 'application/gpx+xml',
+    buffer: Buffer.from('<?xml version="1.0"?><gpx><trk><name>Nome originale</name><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.01" lon="11.02"/></trkseg></trk></gpx>'),
+  });
+  await drawer.getByLabel('Nome traccia').fill('Sentiero importato');
+  await drawer.getByRole('button', { name: 'Salva nel cloud' }).click();
+  await expect(drawer.getByText('Traccia salvata nel cloud.')).toBeVisible();
+  await drawer.locator('.gpx-track-row').first().getByRole('button', { name: 'Rinomina' }).click();
+  await drawer.getByLabel('Nuovo nome').fill('Bosco rinominato');
+  await drawer.getByRole('button', { name: 'Salva nome' }).click();
+  await expect(drawer.getByText('Bosco rinominato')).toBeVisible();
   await expect(page.locator('.account-launcher strong')).toHaveText('mario_rossi');
   await expect(drawer.locator('.gpx-track-row').first().getByText('1', { exact: true })).toHaveCount(2);
   await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).first().click();
   const routesPanel = page.getByRole('complementary', { name: 'Percorsi sulla mappa' });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByRole('button', { name: 'Nascondi dalla mappa' })).toBeVisible();
-  await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
+  await expect(routesPanel.getByText('Bosco rinominato')).toBeVisible();
   await drawer.getByRole('button', { name: 'Mostra sulla mappa' }).first().click();
-  await expect(routesPanel.getByText('Bosco del Cansiglio')).toBeVisible();
+  await expect(routesPanel.getByText('Bosco rinominato')).toBeVisible();
   await expect(routesPanel.getByText('Anello del Monte')).toBeVisible();
   await expect(routesPanel.getByText('Porcini 1').first()).toBeVisible();
   await expect(routesPanel.getByText('Finferli 1').first()).toBeVisible();
