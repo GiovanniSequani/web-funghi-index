@@ -1,6 +1,6 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import { getSupabasePublicConfig } from '../pointDetails/supabaseConfig';
-import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
+import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxMushroomMarker, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
 import { normalizeTrackName, normalizeUsername, toAccountError, validateTrackName } from './validation';
 
 const TRACK_COLUMNS = [
@@ -15,6 +15,8 @@ const TRACK_COLUMNS = [
   'ended_at',
   'point_count',
   'distance_m',
+  'trim_start_point_index',
+  'trim_end_point_index',
   'ready_at',
   'created_at',
 ].join(',');
@@ -200,4 +202,28 @@ export async function deleteTrack(
       { cause: normalized, partial: true },
     );
   }
+}
+
+export async function loadTrackMarkers(trackId: string, supabase: SupabaseClient = getAccountSupabaseClient()): Promise<GpxMushroomMarker[]> {
+  const { data, error } = await supabase.from('user_gpx_mushroom_markers').select('*').eq('track_id', trackId).order('track_point_index');
+  if (error) throw toAccountError(error);
+  return (data ?? []) as GpxMushroomMarker[];
+}
+
+export async function setTrackTrim(trackId: string, start: number | null, end: number | null, supabase: SupabaseClient = getAccountSupabaseClient()): Promise<GpxTrack> {
+  const { data, error } = await supabase.rpc('set_my_gpx_track_trim', { p_track_id: trackId, p_trim_start_point_index: start, p_trim_end_point_index: end });
+  if (error) throw toAccountError(error);
+  if (!data) throw new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna l archivio e riprova.');
+  return data as GpxTrack;
+}
+
+export async function saveTrackMarker(marker: GpxMushroomMarker, supabase: SupabaseClient = getAccountSupabaseClient()): Promise<GpxMushroomMarker> {
+  const { data, error } = await supabase.rpc('save_my_gpx_mushroom_marker', { p_track_id: marker.track_id, p_track_point_index: marker.track_point_index, p_latitude: marker.latitude, p_longitude: marker.longitude, p_species: marker.species, p_count: marker.count });
+  if (error) throw toAccountError(error);
+  return data as GpxMushroomMarker;
+}
+
+export async function deleteTrackMarker(trackId: string, pointIndex: number, species: GpxMushroomMarker['species'], supabase: SupabaseClient = getAccountSupabaseClient()): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_gpx_mushroom_marker', { p_track_id: trackId, p_track_point_index: pointIndex, p_species: species });
+  if (error) throw toAccountError(error);
 }

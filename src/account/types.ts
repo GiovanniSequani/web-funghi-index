@@ -32,8 +32,28 @@ export type GpxTrack = {
   ended_at: string | null;
   point_count: number | null;
   distance_m: number | null;
+  trim_start_point_index: number | null;
+  trim_end_point_index: number | null;
   ready_at: string;
   created_at: string;
+};
+
+export type GpxTrackPoint = {
+  pointIndex: number;
+  coordinate: [number, number];
+};
+
+export type GpxTrackSegment = { points: GpxTrackPoint[] };
+
+export type GpxMushroomMarker = {
+  track_id: string;
+  track_point_index: number;
+  latitude: number;
+  longitude: number;
+  species: 'porcini' | 'finferli';
+  count: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type AccountSessionState = {
@@ -64,9 +84,22 @@ export type GpxMapData = {
   bbox: [number, number, number, number];
   porciniCount: number;
   finferliCount: number;
+  rawPointCount: number;
+  trackPoints: GpxTrackPoint[];
+  trackSegments: GpxTrackSegment[];
+  usesTrackPoints: boolean;
 };
 
-export type CloudMapTrack = { id: string; name: string; data: GpxMapData };
+export type GpxEditDraft = { trimStart: number; trimEnd: number; markers: GpxMushroomMarker[] };
+
+export type CloudMapTrack = {
+  id: string;
+  name: string;
+  data: GpxMapData;
+  track: GpxTrack;
+  markers: GpxMushroomMarker[];
+  preview?: GpxEditDraft;
+};
 
 export type PreparedGpxUpload = {
   bytes: Uint8Array;

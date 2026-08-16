@@ -8,8 +8,10 @@ import {
   LogIn,
   LogOut,
   MapPinned,
+  MoreHorizontal,
   Pencil,
   RefreshCw,
+  Scissors,
   ShieldCheck,
   Trash2,
   Upload,
@@ -19,7 +21,7 @@ import {
 } from 'lucide-react';
 import {
   deleteTrack,
-  downloadTrack,
+  downloadTrack, loadTrackMarkers,
   getAccountSupabaseClient,
   getArchiveConfig,
   loadArchiveData,
@@ -191,10 +193,11 @@ function AuthForm(props: {
 
 function TrackRow(props: {
   track: GpxTrack;
-  action: 'download' | 'display' | 'rename' | 'delete' | null;
+  action: 'download' | 'display' | 'edit' | 'rename' | 'delete' | null;
   partialDelete: boolean;
   onDownload: () => void;
   onDisplay: () => void;
+  onEdit: () => void;
   visibleOnMap: boolean;
   onDelete: () => void;
   onRename: () => void;
@@ -207,6 +210,8 @@ function TrackRow(props: {
   detail?: GpxMapData | 'loading' | 'error';
 }) {
   const track = props.track;
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const runMenuAction = (action: () => void) => () => { setMenuOpen(false); action(); };
   return (
     <li className="gpx-track-row">
       <div className="gpx-track-title">
@@ -235,18 +240,15 @@ function TrackRow(props: {
           <MapPinned size={16} aria-hidden="true" />
           {props.action === 'display' ? 'Apertura…' : props.visibleOnMap ? 'Nascondi dalla mappa' : 'Mostra sulla mappa'}
         </button>
-        <button type="button" onClick={props.onRename} disabled={props.action !== null || props.partialDelete || props.renaming}>
-          <Pencil size={16} aria-hidden="true" />
-          Rinomina
-        </button>
-        <button type="button" onClick={props.onDownload} disabled={props.action !== null || props.partialDelete}>
-          <CloudDownload size={16} aria-hidden="true" />
-          {props.action === 'download' ? 'Downloadâ€¦' : 'Scarica'}
-        </button>
-        <button className="danger" type="button" onClick={props.onDelete} disabled={props.action !== null}>
-          <Trash2 size={16} aria-hidden="true" />
-          {props.action === 'delete' ? 'Cancellazioneâ€¦' : props.partialDelete ? 'Completa cancellazione' : 'Elimina'}
-        </button>
+        <details className="gpx-track-menu" open={menuOpen}>
+          <summary role="button" onClick={(event) => { event.preventDefault(); setMenuOpen((open) => !open); }} aria-label={'Altre opzioni per ' + track.display_name}><MoreHorizontal size={19} aria-hidden="true" /></summary>
+          <div role="menu">
+            <button type="button" role="menuitem" onClick={runMenuAction(props.onRename)} disabled={props.action !== null || props.partialDelete || props.renaming}><Pencil size={15} /> Rinomina</button>
+            <button type="button" role="menuitem" onClick={runMenuAction(props.onEdit)} disabled={props.action !== null || props.partialDelete}><Scissors size={15} /> Modifica</button>
+            <button type="button" role="menuitem" onClick={runMenuAction(props.onDownload)} disabled={props.action !== null || props.partialDelete}><CloudDownload size={15} /> {props.action === 'download' ? 'Download…' : 'Scarica'}</button>
+            <button className="danger" type="button" role="menuitem" onClick={runMenuAction(props.onDelete)} disabled={props.action !== null}><Trash2 size={15} /> {props.action === 'delete' ? 'Cancellazione…' : props.partialDelete ? 'Completa cancellazione' : 'Elimina'}</button>
+          </div>
+        </details>
       </div>
     </li>
   );
@@ -257,6 +259,7 @@ export function AccountArchiveDrawer(props: {
   onClose: () => void;
   initialView?: AuthView;
   onShowTrack: (track: CloudMapTrack) => void;
+  onEditTrack: (track: CloudMapTrack) => void;
   onTrackDeleted?: (trackId: string) => void;
   onTrackRenamed?: (trackId: string, name: string) => void;
   visibleTrackIds: ReadonlySet<string>;
@@ -271,7 +274,7 @@ export function AccountArchiveDrawer(props: {
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [authNotice, setAuthNotice] = React.useState<string | null>(null);
-  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'rename' | 'delete'>>({});
+  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'edit' | 'rename' | 'delete'>>({});
   const [preparedUpload, setPreparedUpload] = React.useState<{ file: File; prepared: PreparedGpxUpload } | null>(null);
   const [uploadName, setUploadName] = React.useState('');
   const [uploadBusy, setUploadBusy] = React.useState(false);
@@ -404,13 +407,32 @@ export function AccountArchiveDrawer(props: {
       const cached = trackDetails[track.id];
       const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
       if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
-      props.onShowTrack({ id: track.id, name: track.display_name, data });
+      const markers = await loadTrackMarkers(track.id);
+      props.onShowTrack({ id: track.id, name: track.display_name, data, track, markers });
     } catch (error) { setArchiveError(toAccountError(error).message); }
     finally {
       setTrackActions((current) => { const next = { ...current }; delete next[track.id]; return next; });
     }
   };
 
+
+  const handleEdit = async (track: GpxTrack) => {
+    setTrackActions((current) => ({ ...current, [track.id]: 'edit' }));
+    setArchiveError(null);
+    try {
+      const cached = trackDetails[track.id];
+      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+      if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
+      const markers = await loadTrackMarkers(track.id);
+      props.onEditTrack({ id: track.id, name: track.display_name, data, track, markers });
+    } catch (error) {
+      const normalized = toAccountError(error);
+      setArchiveError(normalized.message);
+      if (normalized.code === 'session_expired') void getAccountSupabaseClient().auth.signOut();
+    } finally {
+      setTrackActions((current) => { const next = { ...current }; delete next[track.id]; return next; });
+    }
+  };
   const handleFile = async (file: File | undefined) => {
     if (!file || !archive) return;
     setUploadBusy(true); setArchiveError(null); setUploadNotice(null); setPreparedUpload(null);
@@ -643,6 +665,7 @@ export function AccountArchiveDrawer(props: {
                     partialDelete={partialDeletes.has(track.id)}
                     onDownload={() => void handleDownload(track)}
                     onDisplay={() => void handleDisplay(track)}
+                    onEdit={() => void handleEdit(track)}
                     visibleOnMap={props.visibleTrackIds.has(track.id)}
                     onDelete={() => void handleDelete(track)}
                     onRename={() => startRename(track)}

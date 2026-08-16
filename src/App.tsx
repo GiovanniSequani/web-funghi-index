@@ -1,8 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, Pencil, RefreshCw } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
+import { GpxTrackEditor } from './account/GpxTrackEditor';
+import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditable } from './account/trackEditing';
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
@@ -20,9 +22,13 @@ const TILE_LAYER_ID = 'funghi-index-layer';
 const USER_SOURCE_ID = 'user-location-source';
 const USER_LAYER_ID = 'user-location-layer';
 const GPX_SOURCE_ID = 'cloud-gpx-source';
+const GPX_EXCLUDED_LAYER_ID = 'cloud-gpx-excluded';
 const GPX_OUTLINE_LAYER_ID = 'cloud-gpx-outline';
 const GPX_LAYER_ID = 'cloud-gpx-line';
 const GPX_FINDINGS_LAYER_ID = 'cloud-gpx-findings';
+const GPX_CLOUD_MARKERS_LAYER_ID = 'cloud-gpx-cloud-markers';
+const GPX_CLOUD_MARKER_LABELS_LAYER_ID = 'cloud-gpx-cloud-marker-labels';
+const GPX_SELECTED_POINT_LAYER_ID = 'cloud-gpx-selected-point';
 const GPX_ENDPOINTS_LAYER_ID = 'cloud-gpx-endpoints';
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
@@ -115,6 +121,10 @@ function App() {
   const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(false);
   const accountSession = useAccountSession();
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
+  const [editingTrackId, setEditingTrackId] = React.useState<string | null>(null);
+  const [selectedEditPointIndex, setSelectedEditPointIndex] = React.useState<number | null>(null);
+  const cloudTracksRef = React.useRef<CloudMapTrack[]>([]);
+  const editingTrackIdRef = React.useRef<string | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
@@ -148,6 +158,13 @@ function App() {
   );
   const calendarDays = React.useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
   const opacity = opacityPercent / 100;
+
+  React.useEffect(() => { cloudTracksRef.current = cloudTracks; }, [cloudTracks]);
+  React.useEffect(() => { editingTrackIdRef.current = editingTrackId; }, [editingTrackId]);
+  React.useEffect(() => {
+    const canvas = mapRef.current?.getCanvas();
+    if (canvas) canvas.style.cursor = editingTrackId ? 'crosshair' : '';
+  }, [editingTrackId]);
 
   const loadTileSets = React.useCallback(async (signal?: AbortSignal) => {
     setTilesLoading(true);
@@ -197,8 +214,33 @@ function App() {
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
     map.on('load', () => setMapReady(true));
     let suppressMapClickUntil = 0;
-    map.on('click', () => {
+    const selectNearestEditingPoint = (screenPoint: { x: number; y: number }, threshold: number): boolean => {
+      const trackId = editingTrackIdRef.current;
+      const track = trackId ? cloudTracksRef.current.find((candidate) => candidate.id === trackId) : null;
+      if (!track) return false;
+      const draft = getActiveDraft(track);
+      let nearestIndex: number | null = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+      for (const point of track.data.trackPoints) {
+        if (point.pointIndex < draft.trimStart || point.pointIndex > draft.trimEnd) continue;
+        const projected = map.project(point.coordinate);
+        const distance = Math.hypot(projected.x - screenPoint.x, projected.y - screenPoint.y);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = point.pointIndex;
+        }
+      }
+      if (nearestIndex === null || nearestDistance > threshold) return false;
+      setSelectedEditPointIndex(nearestIndex);
+      setSelectedMapPoint(null);
+      return true;
+    };
+    map.on('click', (event) => {
       if (Date.now() < suppressMapClickUntil) return;
+      if (editingTrackIdRef.current) {
+        selectNearestEditingPoint(event.point, 30);
+        return;
+      }
       setSelectedMapPoint(null);
     });
     map.on('contextmenu', (event) => {
@@ -210,7 +252,12 @@ function App() {
     const removeLongPress = installTouchLongPress(canvas, ({ clientX, clientY }) => {
       suppressMapClickUntil = Date.now() + 1_000;
       const bounds = canvas.getBoundingClientRect();
-      const lngLat = map.unproject([clientX - bounds.left, clientY - bounds.top]);
+      const screenPoint = { x: clientX - bounds.left, y: clientY - bounds.top };
+      if (editingTrackIdRef.current) {
+        selectNearestEditingPoint(screenPoint, 38);
+        return;
+      }
+      const lngLat = map.unproject([screenPoint.x, screenPoint.y]);
       setSelectedMapPoint({ longitude: lngLat.lng, latitude: lngLat.lat });
     });
     mapRef.current = map;
@@ -303,39 +350,56 @@ function App() {
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    const selectedEditingTrack = editingTrackId ? cloudTracks.find((track) => track.id === editingTrackId) : null;
+    const selectedEditingCoordinate = selectedEditingTrack && selectedEditPointIndex !== null
+      ? selectedEditingTrack.data.trackPoints.find((point) => point.pointIndex === selectedEditPointIndex)?.coordinate
+      : undefined;
     const collection: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: cloudTracks.flatMap((track, index) => [
-        ...track.data.lines.features.map((feature) => ({ ...feature, properties: { routeId: track.id, colorIndex: index } })),
-        ...track.data.findings.features.map((feature) => ({ ...feature, properties: { ...feature.properties, routeId: track.id, kind: 'finding' } })),
-        { type: 'Feature' as const, properties: { routeId: track.id, kind: 'start' }, geometry: { type: 'Point' as const, coordinates: track.data.start } },
-        { type: 'Feature' as const, properties: { routeId: track.id, kind: 'end' }, geometry: { type: 'Point' as const, coordinates: track.data.end } },
-      ]),
+      features: [
+        ...cloudTracks.flatMap((track, index) => buildTrackFeatures(track, index)),
+        ...(selectedEditingCoordinate ? [{
+          type: 'Feature' as const,
+          properties: { kind: 'selected-edit-point', pointIndex: selectedEditPointIndex },
+          geometry: { type: 'Point' as const, coordinates: selectedEditingCoordinate },
+        }] : []),
+      ],
     };
+    const layerIds = [GPX_SELECTED_POINT_LAYER_ID, GPX_CLOUD_MARKER_LABELS_LAYER_ID, GPX_CLOUD_MARKERS_LAYER_ID, GPX_FINDINGS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID, GPX_EXCLUDED_LAYER_ID];
     if (cloudTracks.length === 0) {
-      [GPX_FINDINGS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+      layerIds.forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(GPX_SOURCE_ID)) map.removeSource(GPX_SOURCE_ID);
       return;
     }
     const source = map.getSource(GPX_SOURCE_ID) as GeoJSONSource | undefined;
     if (source) { source.setData(collection); return; }
     map.addSource(GPX_SOURCE_ID, { type: 'geojson', data: collection });
-    const lineFilter: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'LineString'];
-    map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': '#102016', 'line-width': 5, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
-    map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: lineFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 3, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
+    const keptFilter: maplibregl.FilterSpecification = ['==', ['get', 'kind'], 'kept-line'];
+    map.addLayer({ id: GPX_EXCLUDED_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'excluded-line'], paint: { 'line-color': '#c9cfca', 'line-width': 3, 'line-opacity': 0.65, 'line-dasharray': [1.4, 1.4] } }, PLACE_LABEL_LAYER_ID);
+    map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': '#102016', 'line-width': 5, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
+    map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 3, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
     map.addLayer({ id: GPX_FINDINGS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'finding'], paint: { 'circle-radius': 6, 'circle-color': ['match', ['get', 'species'], 'porcino', '#8b5a2b', '#f2b84b'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } });
+    map.addLayer({ id: GPX_CLOUD_MARKERS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'cloud-marker'], paint: { 'circle-radius': 10, 'circle-color': ['match', ['get', 'markerSpecies'], 'porcini', '#8b5a2b', 'finferli', '#f2b84b', '#6f4c9b'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff4dc' } });
+    map.addLayer({ id: GPX_CLOUD_MARKER_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'cloud-marker'], layout: { 'text-field': ['get', 'countLabel'], 'text-size': 10, 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
+    map.addLayer({ id: GPX_SELECTED_POINT_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'selected-edit-point'], paint: { 'circle-radius': 6, 'circle-color': '#ffffff', 'circle-opacity': 0.92, 'circle-stroke-width': 3, 'circle-stroke-color': '#1677ff' } });
     map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], layout: { 'text-field': '■', 'text-size': 14, 'text-allow-overlap': true }, paint: { 'text-color': ['match', ['get', 'kind'], 'start', '#00d94f', '#ff2f3d'], 'text-halo-width': 1.5, 'text-halo-color': '#ffffff' } });
-  }, [cloudTracks, mapReady]);
+  }, [cloudTracks, editingTrackId, mapReady, selectedEditPointIndex]);
 
-  React.useEffect(() => { if (!accountSession.session) setCloudTracks([]); }, [accountSession.session]);
+  React.useEffect(() => { if (!accountSession.session) { setCloudTracks([]); setEditingTrackId(null); } }, [accountSession.session]);
 
   const showCloudTrack = React.useCallback((track: CloudMapTrack) => {
     setCloudTracks((current) => [...current.filter((item) => item.id !== track.id), track]);
   }, []);
 
+  const beginEditingTrack = React.useCallback((track: CloudMapTrack) => {
+    setCloudTracks((current) => [...current.filter((item) => item.id !== track.id), track]);
+    setSelectedEditPointIndex(null);
+    setEditingTrackId(track.id);
+  }, []);
+
   const focusCloudTrack = React.useCallback((track: CloudMapTrack) => {
     const map = mapRef.current; if (!map) return;
-    const [west, south, east, north] = track.data.bbox;
+    const [west, south, east, north] = getTrackVisibleBbox(track);
     if (west === east && south === north) map.easeTo({ center: [west, south], zoom: Math.max(map.getZoom(), 14), duration: 700 });
     else map.fitBounds([[west, south], [east, north]], { padding: 70, maxZoom: 15, duration: 700 });
   }, []);
@@ -419,6 +483,8 @@ function App() {
     );
   };
 
+  const editingTrack = cloudTracks.find((track) => track.id === editingTrackId) ?? null;
+
   return (
     <main className="app-shell">
       <div ref={mapContainerRef} className="map-canvas" />
@@ -427,11 +493,31 @@ function App() {
       </div>
       {cloudTracks.length > 0 && (
         <aside className="cloud-tracks-panel" aria-label="Percorsi sulla mappa">
-          <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => setCloudTracks([])}>Rimuovi tutti</button></header>
-          <ul>{cloudTracks.map((track) => <li key={track.id}><button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" />{track.name}</button><div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div><button type="button" aria-label={`Rimuovi ${track.name} dalla mappa`} onClick={() => setCloudTracks((current) => current.filter((item) => item.id !== track.id))}>×</button></li>)}</ul>
+          <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => { setCloudTracks([]); setEditingTrackId(null); }}>Rimuovi tutti</button></header>
+          <ul>{cloudTracks.map((track) => <li key={track.id}>
+            <button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" />{track.name}</button>
+            <div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div>
+            <button className="cloud-track-edit" type="button" disabled={!isTrackEditable(track)} title={isTrackEditable(track) ? 'Modifica percorso' : 'Editing non disponibile'} aria-label={'Modifica ' + track.name} onClick={() => { setSelectedEditPointIndex(null); setEditingTrackId(track.id); }}><Pencil size={15} /></button>
+            <button type="button" aria-label={'Rimuovi ' + track.name + ' dalla mappa'} onClick={() => { setCloudTracks((current) => current.filter((item) => item.id !== track.id)); if (editingTrackId === track.id) setEditingTrackId(null); }}>×</button>
+          </li>)}</ul>
         </aside>
       )}
-
+      {editingTrack && <GpxTrackEditor
+        track={editingTrack}
+        selectedPointIndex={selectedEditPointIndex}
+        onSelectedPointChange={setSelectedEditPointIndex}
+        onPreview={(preview) => setCloudTracks((current) => current.map((track) => track.id === editingTrack.id ? { ...track, preview } : track))}
+        onCancel={() => {
+          setCloudTracks((current) => current.map((track) => { if (track.id !== editingTrack.id) return track; const { preview: _preview, ...rest } = track; return rest; }));
+          setEditingTrackId(null);
+          setSelectedEditPointIndex(null);
+        }}
+        onSaved={(updatedTrack, markers) => {
+          setCloudTracks((current) => current.map((track) => track.id === editingTrack.id ? { ...track, track: updatedTrack, markers, preview: undefined } : track));
+          setEditingTrackId(null);
+          setSelectedEditPointIndex(null);
+        }}
+      />}
       <button
         className={`account-launcher${accountSession.session ? ' is-authenticated' : ''}`}
         type="button"
@@ -684,7 +770,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
+        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onEditTrack={beginEditingTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
       )}
     </main>
   );

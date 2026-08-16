@@ -22,5 +22,8 @@ describe('GPX cloud map data', () => {
     expect(data.start).toEqual([11, 46]);
     expect(data.end).toEqual([11.02, 46.01]);
     expect(data.bbox).toEqual([11, 46, 11.02, 46.01]);
+    expect(data.rawPointCount).toBe(2);
+    expect(data.trackPoints.map((point) => point.pointIndex)).toEqual([0, 1]);
+    expect(data.usesTrackPoints).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteTrack, loadArchiveData, renameTrack, signUp, uploadPreparedTrack } from './client';
+import { deleteTrack, deleteTrackMarker, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, signUp, uploadPreparedTrack } from './client';
 import type { GpxTrack, PreparedGpxUpload } from './types';
 
 const track: GpxTrack = {
@@ -15,6 +15,8 @@ const track: GpxTrack = {
   ended_at: null,
   point_count: null,
   distance_m: null,
+  trim_start_point_index: null,
+  trim_end_point_index: null,
   ready_at: '2026-08-06T10:00:00Z',
   created_at: '2026-08-06T10:00:00Z',
 };
@@ -112,7 +114,7 @@ describe('account Supabase client', () => {
       bytes: new Uint8Array([1, 2, 3]), compressedSizeBytes: 3, uncompressedSizeBytes: 10,
       contentSha256: 'a'.repeat(64), startedAt: null, endedAt: null, pointCount: 2,
       distanceM: 12, bbox: { west: 11, south: 46, east: 11.1, north: 46.1 },
-      suggestedName: 'Bosco', mapData: { lines: { type: 'FeatureCollection', features: [] }, findings: { type: 'FeatureCollection', features: [] }, start: [0, 0], end: [0, 0], bbox: [0, 0, 0, 0], porciniCount: 0, finferliCount: 0 },
+      suggestedName: 'Bosco', mapData: { lines: { type: 'FeatureCollection', features: [] }, findings: { type: 'FeatureCollection', features: [] }, start: [0, 0], end: [0, 0], bbox: [0, 0, 0, 0], porciniCount: 0, finferliCount: 0, rawPointCount: 0, trackPoints: [], trackSegments: [], usesTrackPoints: true },
     };
     await uploadPreparedTrack({ displayName: 'Bosco', originalFilename: 'bosco.gpx', prepared }, supabase);
     expect(calls).toEqual(['reserve_my_gpx_track', 'storage.upload', 'finalize_my_gpx_track']);
@@ -138,5 +140,39 @@ describe('account Supabase client', () => {
     const supabase = { rpc } as unknown as SupabaseClient;
     await expect(renameTrack(track, 'cartella/bosco', supabase)).rejects.toMatchObject({ code: 'invalid_track_name' });
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('usa le RPC del contratto per trim e marker senza modificare Storage', async () => {
+    const marker = { track_id: track.id, track_point_index: 7, latitude: 46.1, longitude: 11.2, species: 'porcini' as const, count: 3 };
+    const trimmed = { ...track, trim_start_point_index: 2, trim_end_point_index: 8 };
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'set_my_gpx_track_trim') return { data: trimmed, error: null };
+      if (name === 'save_my_gpx_mushroom_marker') return { data: marker, error: null };
+      return { data: null, error: null };
+    });
+    const supabase = { rpc } as unknown as SupabaseClient;
+
+    await setTrackTrim(track.id, 2, 8, supabase);
+    await saveTrackMarker(marker, supabase);
+    await deleteTrackMarker(track.id, 7, 'porcini', supabase);
+
+    expect(rpc).toHaveBeenNthCalledWith(1, 'set_my_gpx_track_trim', {
+      p_track_id: track.id,
+      p_trim_start_point_index: 2,
+      p_trim_end_point_index: 8,
+    });
+    expect(rpc).toHaveBeenNthCalledWith(2, 'save_my_gpx_mushroom_marker', {
+      p_track_id: track.id,
+      p_track_point_index: 7,
+      p_latitude: 46.1,
+      p_longitude: 11.2,
+      p_species: 'porcini',
+      p_count: 3,
+    });
+    expect(rpc).toHaveBeenNthCalledWith(3, 'delete_my_gpx_mushroom_marker', {
+      p_track_id: track.id,
+      p_track_point_index: 7,
+      p_species: 'porcini',
+    });
   });
 });

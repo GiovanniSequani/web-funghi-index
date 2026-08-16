@@ -35,14 +35,18 @@ function coordinates(node: Element): [number, number] | null {
 function parseGpx(raw: Uint8Array, filename: string) {
   const document = new DOMParser().parseFromString(new TextDecoder().decode(raw), 'application/xml');
   if (document.querySelector('parsererror')) throw new AccountArchiveError('invalid_gpx', 'Il file GPX non è valido.');
-  const groups = [...document.querySelectorAll('trkseg')].map((segment) => [...segment.querySelectorAll('trkpt')]);
-  if (groups.length === 0) groups.push([...document.querySelectorAll('rte > rtept')]);
+  const trackGroups = [...document.querySelectorAll('trkseg')].map((segment) => [...segment.querySelectorAll('trkpt')]);
+  const usesTrackPoints = trackGroups.length > 0;
+  const groups = usesTrackPoints ? trackGroups : [[...document.querySelectorAll('rte > rtept')]];
   const times: number[] = [];
-  const segments = groups.map((nodes) => nodes.flatMap((node) => {
+  let rawPointIndex = 0;
+  const indexedSegments = groups.map((nodes) => nodes.flatMap((node) => {
+    const pointIndex = rawPointIndex; rawPointIndex += 1;
     const point = coordinates(node); if (!point) return [];
     const time = Date.parse(node.querySelector('time')?.textContent ?? ''); if (Number.isFinite(time)) times.push(time);
-    return [point];
+    return [{ pointIndex, coordinate: point }];
   })).filter((segment) => segment.length > 0);
+  const segments = indexedSegments.map((segment) => segment.map((point) => point.coordinate));
   const points = segments.flat();
   if (points.length === 0) throw new AccountArchiveError('invalid_gpx', 'La traccia non contiene punti GPS validi.');
   const findings = [...document.querySelectorAll('gpx > wpt, wpt')].flatMap((node, index) => {
@@ -61,6 +65,10 @@ function parseGpx(raw: Uint8Array, filename: string) {
     bbox: [Math.min(...longitudes), Math.min(...latitudes), Math.max(...longitudes), Math.max(...latitudes)],
     porciniCount: findings.filter((item) => item.species === 'porcino').length,
     finferliCount: findings.filter((item) => item.species === 'finferlo').length,
+    rawPointCount: rawPointIndex,
+    trackPoints: indexedSegments.flat(),
+    trackSegments: indexedSegments.map((segment) => ({ points: segment })),
+    usesTrackPoints,
   };
   return { pointCount: points.length, distanceM: segments.reduce((sum, segment) => sum + segmentDistance(segment), 0), bbox: { west: mapData.bbox[0], south: mapData.bbox[1], east: mapData.bbox[2], north: mapData.bbox[3] }, startedAt: times.length ? new Date(Math.min(...times)).toISOString() : null, endedAt: times.length ? new Date(Math.max(...times)).toISOString() : null, suggestedName, mapData };
 }
