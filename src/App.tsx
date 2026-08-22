@@ -10,7 +10,7 @@ import { useAccountSession } from './account/useAccountSession';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
-import { PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
+import { BASE_MAP_MAX_ZOOM, PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
 import { installTouchLongPress } from './mapLongPress';
 import { PointDetailsDrawer } from './pointDetails/PointDetailsDrawer';
 import type { MapPoint } from './pointDetails/types';
@@ -207,7 +207,7 @@ function App() {
       center: DEFAULT_CENTER,
       zoom: 9,
       minZoom: 6,
-      maxZoom: 15,
+      maxZoom: BASE_MAP_MAX_ZOOM,
       attributionControl: { compact: true },
     });
 
