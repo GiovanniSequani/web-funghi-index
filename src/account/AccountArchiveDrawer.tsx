@@ -32,19 +32,13 @@ import {
   uploadPreparedTrack,
 } from './client';
 import { decodeCloudGpx, prepareImportedGpx } from './gpx';
+import { formatTrackDate, getTrackDateIso } from './trackDate';
 import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, CloudMapTrack, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
 import { normalizeTrackName, normalizeUsername, safeDownloadName, toAccountError, validateTrackName, validateUsername } from './validation';
 import './account.css';
 
 type AuthView = 'login' | 'register';
 
-const dateFormatter = new Intl.DateTimeFormat('it-IT', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
 const numberFormatter = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 });
 
 function formatBytes(value: number): string {
@@ -216,7 +210,7 @@ function TrackRow(props: {
     <li className="gpx-track-row">
       <div className="gpx-track-title">
         <strong>{track.display_name}</strong>
-        <span>{dateFormatter.format(new Date(track.ready_at ?? track.created_at))}</span>
+        <time dateTime={getTrackDateIso(track)}>{formatTrackDate(track)}</time>
       </div>
       {props.renaming && (
         <div className="gpx-rename-form">

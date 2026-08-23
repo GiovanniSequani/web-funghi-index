@@ -4,6 +4,7 @@ import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, Pencil, RefreshCw } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
+import { formatTrackDate, getTrackDateIso } from './account/trackDate';
 import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditable } from './account/trackEditing';
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
@@ -495,7 +496,7 @@ function App() {
         <aside className="cloud-tracks-panel" aria-label="Percorsi sulla mappa">
           <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => { setCloudTracks([]); setEditingTrackId(null); }}>Rimuovi tutti</button></header>
           <ul>{cloudTracks.map((track) => <li key={track.id}>
-            <button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" />{track.name}</button>
+            <button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" /><span className="cloud-track-map-label"><strong>{track.name}</strong><time dateTime={getTrackDateIso(track.track)}>{formatTrackDate(track.track)}</time></span></button>
             <div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div>
             <button className="cloud-track-edit" type="button" disabled={!isTrackEditable(track)} title={isTrackEditable(track) ? 'Modifica percorso' : 'Editing non disponibile'} aria-label={'Modifica ' + track.name} onClick={() => { setSelectedEditPointIndex(null); setEditingTrackId(track.id); }}><Pencil size={15} /></button>
             <button type="button" aria-label={'Rimuovi ' + track.name + ' dalla mappa'} onClick={() => { setCloudTracks((current) => current.filter((item) => item.id !== track.id)); if (editingTrackId === track.id) setEditingTrackId(null); }}>×</button>

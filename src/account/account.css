@@ -699,6 +699,7 @@
 .gpx-editor header small { color: #83a07f; font-size: 9px; font-weight: 850; letter-spacing: .8px; text-transform: uppercase; }
 .gpx-editor header h2 { margin: 2px 0; font-size: 19px; }
 .gpx-editor header p { margin: 0; color: #aebcab; font-size: 11px; }
+.gpx-editor header time { display: block; margin-top: 2px; color: #849780; font-size: 10px; }
 .gpx-editor header button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid #3c5140; border-radius: 8px; color: #dbe8d7; background: #18251a; cursor: pointer; }
 .gpx-editor-section { display: grid; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #2f4032; }
 .gpx-editor-section-title { display: flex; align-items: center; gap: 7px; }

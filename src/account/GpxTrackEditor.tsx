@@ -2,6 +2,7 @@ import React from 'react';
 import { Minus, Plus, RotateCcw, Save, Scissors, Trash2, X } from 'lucide-react';
 import { deleteTrackMarker, getAccountSupabaseClient, loadTrackMarkers, saveTrackMarker, setTrackTrim } from './client';
 import { getStoredTrim, isTrackEditable, markerKey, markerMap } from './trackEditing';
+import { formatTrackDate, getTrackDateIso } from './trackDate';
 import type { CloudMapTrack, GpxEditDraft, GpxMushroomMarker, GpxTrack } from './types';
 import { toAccountError } from './validation';
 
@@ -142,7 +143,7 @@ export function GpxTrackEditor(props: {
   return (
     <aside className="gpx-editor" role="dialog" aria-modal="false" aria-labelledby="gpx-editor-title">
       <header>
-        <div><small>Archivio cloud</small><h2 id="gpx-editor-title">Modifica percorso</h2><p>{props.track.name}</p></div>
+        <div><small>Archivio cloud</small><h2 id="gpx-editor-title">Modifica percorso</h2><p>{props.track.name}</p><time dateTime={getTrackDateIso(props.track.track)}>{formatTrackDate(props.track.track)}</time></div>
         <button type="button" onClick={props.onCancel} disabled={busy} aria-label="Annulla e chiudi"><X size={20} /></button>
       </header>
       {!editable ? (

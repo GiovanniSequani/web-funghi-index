@@ -910,6 +910,9 @@ button:focus-visible,
 .cloud-tracks-panel ul { max-height: 170px; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none; }
 .cloud-tracks-panel li { display: grid; grid-template-columns: minmax(0,1fr) auto 28px; align-items: center; gap: 6px; padding: 3px 7px 3px 10px; }
 .cloud-tracks-panel li > button:first-child { min-width: 0; display: flex; align-items: center; gap: 8px; padding: 7px 0; overflow: hidden; font-size: 11px; font-weight: 800; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-track-map-label { min-width: 0; display: grid; gap: 1px; }
+.cloud-track-map-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-track-map-label time { color: #91a48b; font-size: 9px; font-weight: 650; }
 .cloud-tracks-panel li > span { color: #91a48b; font-size: 9px; font-variant-numeric: tabular-nums; }
 .cloud-tracks-panel li > button:last-child { width: 28px; height: 28px; color: #e98d83; font-size: 18px; }
 .cloud-track-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #79e06e; box-shadow: 0 0 0 2px rgba(121,224,110,.18); }
