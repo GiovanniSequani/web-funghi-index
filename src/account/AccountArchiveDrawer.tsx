@@ -230,7 +230,7 @@ function TrackRow(props: {
         <p className="account-message warning">File eliminato; completa la cancellazione dei metadati.</p>
       )}
       <div className="gpx-track-actions">
-        <button type="button" onClick={props.onDisplay} disabled={props.action !== null || props.partialDelete}>
+        <button className={props.visibleOnMap ? 'map-hide' : undefined} type="button" onClick={props.onDisplay} disabled={props.action !== null || props.partialDelete}>
           <MapPinned size={16} aria-hidden="true" />
           {props.action === 'display' ? 'Apertura…' : props.visibleOnMap ? 'Nascondi dalla mappa' : 'Mostra sulla mappa'}
         </button>

@@ -290,27 +290,27 @@
 .account-empty svg { color: #71836f; }
 .account-empty strong { color: #dfe8d7; font-size: 13px; }
 
-.gpx-track-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.gpx-track-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
 
 .gpx-track-row {
   display: grid;
-  gap: 11px;
-  padding: 13px;
+  gap: 7px;
+  padding: 10px 11px;
   border: 1px solid #2d4030;
   border-radius: 8px;
   background: #151f16;
 }
 
-.gpx-track-title { min-width: 0; display: grid; gap: 3px; }
-.gpx-track-title strong { overflow-wrap: anywhere; color: #edf2e7; font-size: 13px; }
-.gpx-track-title span { color: #809079; font-size: 10px; }
-.gpx-track-row dl { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; }
+.gpx-track-title { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; }
+.gpx-track-title strong { overflow: hidden; color: #edf2e7; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.gpx-track-title time { color: rgba(166, 177, 162, .68); font-size: 8.5px; font-weight: 450; letter-spacing: 0; white-space: nowrap; }
+.gpx-track-row dl { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
 .gpx-track-row dl div { display: flex; gap: 5px; }
 .gpx-track-row dt { color: #71836f; font-size: 10px; }
 .gpx-track-row dd { margin: 0; color: #cbd7c2; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 750; }
 
 .gpx-track-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.gpx-track-actions button { min-height: 35px; padding: 0 9px; font-size: 11px; }
+.gpx-track-actions button { min-height: 32px; padding: 0 9px; font-size: 10.5px; }
 .gpx-track-actions button.danger { border-color: rgba(198, 87, 75, 0.52); color: #f0aaa2; background: #2b1917; }
 
 .account-launcher {
@@ -755,10 +755,12 @@
 .gpx-editor { z-index: 45; }
 .gpx-track-actions { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 7px; }
 .gpx-track-actions > button:first-child { width: 100%; flex-basis: auto; color: #b8e9af; border-color: #46754a; }
+.gpx-track-actions > button.map-hide { color: #f1a59c; border-color: rgba(207, 83, 70, .7); background: #2a1816; }
+.gpx-track-actions > button.map-hide:hover { color: #ffc0b8; border-color: #df6759; background: #351b18; }
 .gpx-track-menu { position: relative; }
 .gpx-track-menu > summary {
   width: 38px;
-  height: 35px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: 1px solid #405743;
