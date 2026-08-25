@@ -4,6 +4,8 @@ import { formatLongDate } from '../pointDetails/formatters';
 import type { MapPoint } from '../pointDetails/types';
 import type { Species } from '../types';
 import { buildPorciniAnalysis, type IndexAnalysisFactor } from './analysis';
+import { IndexHistoryChart } from './IndexHistoryChart';
+import { useIndexHistory } from './useIndexHistory';
 import { useIndexPoint } from './useIndexPoint';
 import './analysis.css';
 
@@ -73,6 +75,7 @@ export function IndexAnalysisDrawer(props: {
 }) {
   const { point, initialSpecies, onClose } = props;
   const { state, retry } = useIndexPoint(point, true);
+  const { state: historyState, retry: retryHistory } = useIndexHistory(point, true);
   const [species, setSpecies] = React.useState<Species>(initialSpecies);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -137,6 +140,7 @@ export function IndexAnalysisDrawer(props: {
       </div>
 
       <div className="point-details-content">
+        <IndexHistoryChart state={historyState} onRetry={retryHistory} />
         {(state.status === 'loading' || state.status === 'idle') && (
           <div className="details-resource-message" data-status="loading" role="status">
             <span className="details-spinner" aria-hidden="true" />

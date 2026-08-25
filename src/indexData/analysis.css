@@ -350,3 +350,136 @@
     padding-left: max(14px, env(safe-area-inset-left));
   }
 }
+
+.index-history-section {
+  padding: 15px 18px 13px;
+  border-bottom: 1px solid #29382c;
+  background: #111a12;
+}
+
+.index-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.index-history-heading h2 {
+  margin: 0;
+  color: #edf2e7;
+  font-size: 14px;
+}
+
+.index-history-heading > div:first-child > span {
+  display: block;
+  margin-top: 3px;
+  color: #7f8e7a;
+  font-size: 9.5px;
+}
+
+.index-history-legend {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 9px;
+  color: #a6b2a1;
+  font-size: 9.5px;
+}
+
+.index-history-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.index-history-legend span::before {
+  width: 13px;
+  height: 2px;
+  border-radius: 2px;
+  background: #d69b52;
+  content: '';
+}
+
+.index-history-legend span[data-species="finferli"]::before {
+  background: #55bfc2;
+}
+
+.index-history-chart {
+  width: 100%;
+  margin-top: 7px;
+  border-radius: 6px;
+  outline: none;
+  touch-action: pan-y;
+}
+
+.index-history-chart:focus-visible {
+  box-shadow: 0 0 0 2px rgba(139, 184, 132, .48);
+}
+
+.index-history-state {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #98a693;
+  font-size: 11px;
+  text-align: center;
+}
+
+.index-history-state[data-status="outside"],
+.index-history-state[data-status="unavailable"],
+.index-history-state[data-status="error"] {
+  min-height: 76px;
+  flex-direction: column;
+}
+
+.index-history-state button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 1px solid #405743;
+  border-radius: 6px;
+  color: #c9d7c4;
+  background: #18251a;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.index-history-readout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  margin: -2px 0 0;
+  color: #8f9e89;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.index-history-readout strong {
+  color: #c8d3c3;
+  font-size: 10px;
+}
+
+.index-history-tooltip {
+  min-width: 132px;
+}
+
+@media (max-width: 760px) {
+  .index-history-section {
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+
+  .index-history-heading {
+    gap: 8px;
+  }
+
+  .index-history-legend {
+    gap: 7px;
+    font-size: 9px;
+  }
+}
