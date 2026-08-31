@@ -2,6 +2,7 @@ import { createClient, type Session, type SupabaseClient } from '@supabase/supab
 import { getSupabasePublicConfig } from '../pointDetails/supabaseConfig';
 import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxMushroomMarker, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
 import { normalizeTrackName, normalizeUsername, toAccountError, validateTrackName } from './validation';
+import { getAuthCallbackUrl } from './authRedirects';
 
 const TRACK_COLUMNS = [
   'id',
@@ -70,6 +71,7 @@ export async function signUp(input: {
     email: input.email.trim(),
     password: input.password,
     options: {
+      emailRedirectTo: getAuthCallbackUrl('/auth/confirm'),
       data: {
         username: normalizeUsername(input.username),
         terms_accepted: true,
@@ -82,6 +84,15 @@ export async function signUp(input: {
   return { session: data.session };
 }
 
+export async function requestPasswordReset(
+  email: string,
+  supabase: SupabaseClient = getAccountSupabaseClient(),
+): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: getAuthCallbackUrl('/auth/recovery'),
+  });
+  if (error) throw toAccountError(error);
+}
 export async function signOut(): Promise<void> {
   const { error } = await getAccountSupabaseClient().auth.signOut();
   if (error) throw toAccountError(error);

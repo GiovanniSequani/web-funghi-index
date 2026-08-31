@@ -25,6 +25,7 @@ import {
   getAccountSupabaseClient,
   getArchiveConfig,
   loadArchiveData,
+  requestPasswordReset,
   signIn,
   signOut,
   signUp,
@@ -56,6 +57,7 @@ function AuthForm(props: {
   onViewChange: (view: AuthView) => void;
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (email: string, password: string, username: string) => Promise<void>;
+  onPasswordReset: (email: string) => Promise<void>;
 }) {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -64,10 +66,15 @@ function AuthForm(props: {
   const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
   const [acceptResearch, setAcceptResearch] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
+  const [resetMode, setResetMode] = React.useState(false);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLocalError(null);
+    if (resetMode) {
+      await props.onPasswordReset(email);
+      return;
+    }
     if (props.view === 'register') {
       const usernameError = validateUsername(username);
       if (usernameError) {
@@ -84,6 +91,12 @@ function AuthForm(props: {
     await props.onLogin(email, password);
   };
 
+  const changeView = (view: AuthView) => {
+    setResetMode(false);
+    setLocalError(null);
+    props.onViewChange(view);
+  };
+
   return (
     <div className="account-auth">
       <div className="account-auth-tabs" role="tablist" aria-label="Accesso account">
@@ -92,7 +105,7 @@ function AuthForm(props: {
           role="tab"
           aria-selected={props.view === 'login'}
           className={props.view === 'login' ? 'active' : ''}
-          onClick={() => props.onViewChange('login')}
+          onClick={() => changeView('login')}
         >
           <LogIn size={16} aria-hidden="true" />
           Accedi
@@ -102,7 +115,7 @@ function AuthForm(props: {
           role="tab"
           aria-selected={props.view === 'register'}
           className={props.view === 'register' ? 'active' : ''}
-          onClick={() => props.onViewChange('register')}
+          onClick={() => changeView('register')}
         >
           <UserPlus size={16} aria-hidden="true" />
           Registrati
@@ -110,7 +123,7 @@ function AuthForm(props: {
       </div>
 
       <form className="account-form" onSubmit={(event) => void submit(event)}>
-        {props.view === 'register' && (
+        {props.view === 'register' && !resetMode && (
           <label>
             Username
             <input
@@ -136,25 +149,27 @@ function AuthForm(props: {
             required
           />
         </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={props.view === 'login' ? 'current-password' : 'new-password'}
-            minLength={6}
-            required
-          />
-        </label>
+        {!resetMode && (
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={props.view === 'login' ? 'current-password' : 'new-password'}
+              minLength={6}
+              required
+            />
+          </label>
+        )}
 
-        {props.view === 'register' && (
+        {props.view === 'register' && !resetMode && (
           <div className="legal-acceptances">
-            {!props.config && <p className="account-inline-note">Caricamento versioni legaliâ€¦</p>}
+            {!props.config && <p className="account-inline-note">Caricamento versioni legali…</p>}
             <label>
               <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
               <span>
-                Accetto i termini di utilizzo dellâ€™archivio GPX
+                Accetto i termini di utilizzo dell’archivio GPX
                 {props.config && <small>Versione {props.config.terms_version}</small>}
               </span>
             </label>
@@ -168,7 +183,7 @@ function AuthForm(props: {
             <label>
               <input type="checkbox" checked={acceptResearch} onChange={(event) => setAcceptResearch(event.target.checked)} />
               <span>
-                Acconsento allâ€™uso per ricerca dei GPX raw in forma anonima, senza user ID, nome file o percorso Storage
+                Acconsento all’uso per ricerca dei GPX raw in forma anonima, senza user ID, nome file o percorso Storage
                 {props.config && <small>Consenso ricerca versione {props.config.research_consent_version}</small>}
               </span>
             </label>
@@ -178,13 +193,21 @@ function AuthForm(props: {
         {(localError || props.error) && <p className="account-message error" role="alert">{localError ?? props.error}</p>}
         {props.notice && <p className="account-message success" role="status">{props.notice}</p>}
         <button className="account-primary" type="submit" disabled={props.busy || (props.view === 'register' && !props.config)}>
-          {props.busy ? 'Attendiâ€¦' : props.view === 'login' ? 'Accedi' : 'Crea account'}
+          {props.busy ? 'Attendi…' : resetMode ? 'Invia link di recupero' : props.view === 'login' ? 'Accedi' : 'Crea account'}
         </button>
+        {props.view === 'login' && (
+          <button
+            className="account-auth-link"
+            type="button"
+            onClick={() => { setResetMode((current) => !current); setLocalError(null); }}
+          >
+            {resetMode ? 'Torna all’accesso' : 'Password dimenticata?'}
+          </button>
+        )}
       </form>
     </div>
   );
 }
-
 function TrackRow(props: {
   track: GpxTrack;
   action: 'download' | 'display' | 'edit' | 'rename' | 'delete' | null;
@@ -567,6 +590,10 @@ export function AccountArchiveDrawer(props: {
                   setAuthView('login');
                   setAuthNotice('Account creato. Controlla lâ€™email e confermala prima di accedere.');
                 }
+              })}
+              onPasswordReset={(email) => runAuth(async () => {
+                await requestPasswordReset(email);
+                setAuthNotice('Se esiste un account per questa email, riceverai un link per scegliere una nuova password.');
               })}
             />
           </>

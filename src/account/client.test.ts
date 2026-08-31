@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteTrack, deleteTrackMarker, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, signUp, uploadPreparedTrack } from './client';
+import { deleteTrack, deleteTrackMarker, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, requestPasswordReset, signUp, uploadPreparedTrack } from './client';
 import type { GpxTrack, PreparedGpxUpload } from './types';
 
 const track: GpxTrack = {
@@ -30,6 +30,7 @@ describe('account Supabase client', () => {
 
     expect(signUpMock).toHaveBeenCalledWith(expect.objectContaining({
       options: {
+        emailRedirectTo: 'http://localhost:5173/auth/confirm',
         data: {
           username: 'mario_rossi',
           terms_accepted: true,
@@ -40,6 +41,16 @@ describe('account Supabase client', () => {
     }));
   });
 
+  it('passa sempre il callback esplicito al recupero password', async () => {
+    const resetPasswordForEmail = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const supabase = { auth: { resetPasswordForEmail } } as unknown as SupabaseClient;
+
+    await requestPasswordReset('  mario@example.test  ', supabase);
+
+    expect(resetPasswordForEmail).toHaveBeenCalledWith('mario@example.test', {
+      redirectTo: 'http://localhost:5173/auth/recovery',
+    });
+  });
   it('cancella prima Storage e poi i metadati tramite RPC', async () => {
     const order: string[] = [];
     const remove = vi.fn().mockImplementation(async () => {

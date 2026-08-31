@@ -1,0 +1,44 @@
+﻿.auth-callback-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #ecf4ed;
+  background: #09140d;
+}
+.auth-callback-card {
+  width: min(100%, 430px);
+  padding: 30px;
+  border: 1px solid rgba(169, 205, 175, 0.22);
+  border-radius: 18px;
+  background: #102117;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
+}
+.auth-callback-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 18px;
+  border-radius: 13px;
+  color: #78d596;
+  background: rgba(70, 164, 99, 0.14);
+}
+.auth-callback-icon svg { width: 25px; height: 25px; }
+.auth-callback-brand { margin: 0 0 5px; color: #8db198; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.auth-callback-card h1 { margin: 0 0 12px; font-size: clamp(1.55rem, 5vw, 2rem); }
+.auth-callback-card > p, .auth-callback-card form > p { color: #b8c8bc; line-height: 1.55; }
+.auth-callback-card form { display: grid; gap: 15px; margin-top: 18px; }
+.auth-callback-card label { display: grid; gap: 7px; color: #dbe8dd; font-size: 0.9rem; font-weight: 700; }
+.auth-callback-card input { min-height: 44px; padding: 0 12px; border: 1px solid #385442; border-radius: 9px; color: #f3f7f4; background: #0a1710; font: inherit; }
+.auth-callback-card input:focus-visible { outline: 2px solid #69c685; outline-offset: 2px; }
+.auth-callback-card button, .auth-callback-home { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; margin-top: 10px; padding: 0 18px; border: 0; border-radius: 10px; color: #071109; background: #78d596; font: inherit; font-weight: 800; text-decoration: none; cursor: pointer; }
+.auth-callback-card button:disabled { cursor: wait; opacity: 0.65; }
+.auth-callback-message { padding: 11px 13px; border-radius: 9px; }
+.auth-callback-message.error { color: #ffb7af; background: rgba(176, 58, 46, 0.16); }
+.auth-callback-message.success { color: #9ce2b1; background: rgba(66, 157, 92, 0.15); }
+.auth-callback-secondary { display: inline-block; margin-top: 16px; color: #afc6b5; }
+@media (max-width: 520px) {
+  .auth-callback-page { align-items: stretch; padding: 0; }
+  .auth-callback-card { width: 100%; min-height: 100dvh; padding: 28px 22px; border: 0; border-radius: 0; }
+}
