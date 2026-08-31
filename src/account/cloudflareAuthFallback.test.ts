@@ -6,6 +6,7 @@ describe('Cloudflare auth routes', () => {
     const redirects = readFileSync('public/_redirects', 'utf8');
     expect(redirects).toContain('/auth/confirm /index.html 200');
     expect(redirects).toContain('/auth/recovery /index.html 200');
+    expect(redirects).toContain('/auth/mobile-confirm /index.html 200');
   });
 
   it('evita cache e referrer sulle pagine che ricevono token', () => {

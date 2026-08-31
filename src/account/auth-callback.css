@@ -1,4 +1,4 @@
-﻿.auth-callback-page {
+.auth-callback-page {
   min-height: 100dvh;
   display: grid;
   place-items: center;
@@ -42,3 +42,5 @@
   .auth-callback-page { align-items: stretch; padding: 0; }
   .auth-callback-card { width: 100%; min-height: 100dvh; padding: 28px 22px; border: 0; border-radius: 0; }
 }
+.auth-callback-card button { gap: 8px; }
+.auth-callback-message.bridge-note { color: #b8c8bc; background: rgba(137, 165, 143, 0.1); }

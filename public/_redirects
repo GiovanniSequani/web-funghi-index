@@ -1,2 +1,3 @@
-﻿/auth/confirm /index.html 200
+/auth/confirm /index.html 200
 /auth/recovery /index.html 200
+/auth/mobile-confirm /index.html 200
