@@ -1,4 +1,4 @@
-﻿import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js';
+import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js';
 import { getAccountSupabaseClient } from './client';
 
 export type AuthCallbackMode = 'confirm' | 'recovery';
@@ -33,6 +33,18 @@ export function parseAuthCallback(search: string, mode: AuthCallbackMode): Parse
   return { valid: true, tokenHash, type: type as EmailOtpType };
 }
 
+
+export function resolveAuthCallbackMode(pathname: string, search: string): AuthCallbackMode | null {
+  let path = pathname || '/';
+  while (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+  if (path === '/auth/confirm') return 'confirm';
+  if (path === '/auth/recovery') return 'recovery';
+  if (path !== '/') return null;
+
+  if (parseAuthCallback(search, 'confirm').valid) return 'confirm';
+  if (parseAuthCallback(search, 'recovery').valid) return 'recovery';
+  return null;
+}
 export function isUsedOrExpiredTokenError(error: unknown): boolean {
   const candidate = error as { code?: string; message?: string };
   return /expired|invalid.*(?:token|otp)|(?:token|otp).*invalid|already.*used|otp_expired/i

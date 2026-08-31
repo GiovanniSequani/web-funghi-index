@@ -4,13 +4,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import App from './App';
 import AuthCallbackPage from './account/AuthCallbackPage';
+import { resolveAuthCallbackMode } from './account/authCallback';
 
-const routePath = window.location.pathname.replace(/\/+$/, '') || '/';
-const content = routePath === '/auth/confirm'
-  ? <AuthCallbackPage mode="confirm" />
-  : routePath === '/auth/recovery'
-    ? <AuthCallbackPage mode="recovery" />
-    : <App />;
+const authCallbackMode = resolveAuthCallbackMode(window.location.pathname, window.location.search);
+const content = authCallbackMode
+  ? <AuthCallbackPage mode={authCallbackMode} />
+  : <App />;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

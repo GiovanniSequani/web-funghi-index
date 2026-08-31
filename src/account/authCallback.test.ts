@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   isUsedOrExpiredTokenError,
   parseAuthCallback,
+  resolveAuthCallbackMode,
   updateRecoveryPassword,
   verifyAuthCallback,
 } from './authCallback';
@@ -47,5 +48,18 @@ describe('auth callback contract', () => {
   it('riconosce i link già usati o scaduti senza esporre dettagli sensibili', () => {
     expect(isUsedOrExpiredTokenError({ code: 'otp_expired', message: 'Token has expired or is invalid' })).toBe(true);
     expect(isUsedOrExpiredTokenError({ message: 'network failed' })).toBe(false);
+  });
+
+  it('instrada anche i link legacy che il template Supabase apre sulla root', () => {
+    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=email')).toBe('confirm');
+    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=signup')).toBe('confirm');
+    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=recovery')).toBe('recovery');
+    expect(resolveAuthCallbackMode('/', '?type=email')).toBeNull();
+    expect(resolveAuthCallbackMode('/mappa', '?token_hash=abc123&type=email')).toBeNull();
+  });
+
+  it('mantiene disponibili i percorsi auth espliciti anche con parametri invalidi', () => {
+    expect(resolveAuthCallbackMode('/auth/confirm', '')).toBe('confirm');
+    expect(resolveAuthCallbackMode('/auth/recovery/', '')).toBe('recovery');
   });
 });
