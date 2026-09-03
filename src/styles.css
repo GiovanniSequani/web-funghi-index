@@ -928,3 +928,46 @@ button:focus-visible,
   .cloud-tracks-panel ul { max-height: min(174px, calc(32vh - 58px)); }
   .legend-toggle, .legend-panel { left: auto; right: 10px; }
 }
+.map-legal-links {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 5px;
+  border: 1px solid rgba(221, 232, 204, 0.14);
+  border-radius: 7px;
+  background: rgba(10, 17, 11, 0.76);
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+}
+
+.map-legal-links a {
+  padding: 3px 5px;
+  color: rgba(231, 236, 217, 0.72);
+  font-size: 9px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.map-legal-links a:hover,
+.map-legal-links a:focus-visible {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .map-legal-links {
+    bottom: 5px;
+    max-width: calc(100vw - 100px);
+  }
+
+  .map-legal-links a {
+    padding-inline: 3px;
+    font-size: 8px;
+  }
+}

@@ -38,6 +38,7 @@ The site is a static React 19 + TypeScript application built by Vite.
   fail-closed access behavior.
 - `public/_headers` is copied into `dist/` for hosts that support the
   Cloudflare-style headers file.
+- Human-facing public routes use a trailing slash in links: `/termini/`, `/privacy/`, `/account-e-dati/`, and `/elimina-account/`. Auth callback endpoints keep their contract paths without a trailing slash.
 - Cloudflare direct routes rely on Pages native SPA fallback: keep both
   `public/_redirects` and a top-level `public/404.html` absent. Rewriting client
   routes to `/index.html` makes Pages canonicalize them to `/` before React can

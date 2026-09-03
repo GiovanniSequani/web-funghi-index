@@ -195,7 +195,11 @@ test('desktop anonimo: profilo sopra MapLibre, pannello indice semplificato e ma
   await expect(drawer.getByText('Controllo dei dati')).toBeVisible();
 
   await drawer.getByRole('tab', { name: 'Registrati' }).click();
-  await expect(drawer.getByText('Versione 2026-08-06', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('Versione 2026-08-06', { exact: false })).toHaveCount(2);
+  await expect(drawer.locator('.legal-acceptances input[type="checkbox"]')).toHaveCount(2);
+  await expect(drawer.locator('.legal-acceptances a[href="/termini/"]')).toBeVisible();
+  await expect(drawer.locator('.legal-acceptances a[href="/privacy/"]')).toBeVisible();
+  await expect(drawer.getByText(/uso per ricerca dei GPX raw/i)).toHaveCount(0);
   await page.screenshot({ path: `${visualDir}/account-desktop-anonymous.png`, fullPage: true });
 
   await drawer.getByRole('button', { name: 'Chiudi account e archivio' }).click();

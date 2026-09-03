@@ -75,7 +75,6 @@ function AuthForm(props: {
   const [username, setUsername] = React.useState('');
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
-  const [acceptResearch, setAcceptResearch] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [resetMode, setResetMode] = React.useState(false);
   const lifecycleRegistration = Boolean(
@@ -103,10 +102,8 @@ function AuthForm(props: {
         setLocalError(usernameError);
         return;
       }
-      if (!acceptTerms || !acceptPrivacy || (!lifecycleRegistration && !acceptResearch)) {
-        setLocalError(lifecycleRegistration
-          ? 'Per registrarti devi accettare i Termini e dichiarare di aver letto l’informativa privacy.'
-          : 'Per registrarti devi accettare tutti e tre i consensi richiesti.');
+      if (!acceptTerms || !acceptPrivacy) {
+        setLocalError('Per registrarti devi accettare i Termini e dichiarare di aver letto l’informativa privacy.');
         return;
       }
       await props.onRegister(email, password, normalizeUsername(username));
@@ -197,8 +194,8 @@ function AuthForm(props: {
                   ? 'Accetto i Termini di utilizzo e dichiaro di avere almeno 18 anni'
                   : 'Accetto i termini di utilizzo dell’archivio GPX'}
                 {lifecycleRegistration
-                  ? <small>Versione {props.lifecycleConfig?.current_terms_version} · <a href="/termini" target="_blank" rel="noreferrer">Leggi</a></small>
-                  : props.config && <small>Versione {props.config.terms_version}</small>}
+                  ? <small>Versione {props.lifecycleConfig?.current_terms_version} · <a href="/termini/" target="_blank" rel="noreferrer">Leggi</a></small>
+                  : props.config && <small>Versione {props.config.terms_version} · <a href="/termini/" target="_blank" rel="noreferrer">Leggi</a></small>}
               </span>
             </label>
             <label>
@@ -209,16 +206,10 @@ function AuthForm(props: {
                   : 'Ho letto e accetto il trattamento dei dati necessario per account e archivio privato'}
                 {lifecycleRegistration
                   ? <small>Versione {props.lifecycleConfig?.current_privacy_version} · <a href="/privacy/" target="_blank" rel="noreferrer">Leggi</a></small>
-                  : props.config && <small>Privacy versione {props.config.privacy_version}</small>}
+                  : props.config && <small>Versione {props.config.privacy_version} · <a href="/privacy/" target="_blank" rel="noreferrer">Leggi</a></small>}
               </span>
             </label>
-            {!lifecycleRegistration && <label>
-              <input type="checkbox" checked={acceptResearch} onChange={(event) => setAcceptResearch(event.target.checked)} />
-              <span>
-                Acconsento all’uso per ricerca dei GPX raw in forma anonima, senza user ID, nome file o percorso Storage
-                {props.config && <small>Consenso ricerca versione {props.config.research_consent_version}</small>}
-              </span>
-            </label>}
+
             {lifecycleRegistration && !lifecycleDocumentsReady && (
               <p className="account-message error" role="alert">I documenti richiesti dal server non corrispondono a quelli inclusi nel sito. Registrazione temporaneamente bloccata.</p>
             )}

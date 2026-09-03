@@ -77,7 +77,6 @@ export function buildSignUpMetadata(input: SignUpInput): Record<string, unknown>
       username,
       terms_accepted: true,
       privacy_accepted: true,
-      raw_gpx_research_consent: true,
     };
   }
   const termsVersion = input.lifecycleConfig.current_terms_version;

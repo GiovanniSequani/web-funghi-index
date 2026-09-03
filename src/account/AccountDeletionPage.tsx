@@ -107,7 +107,7 @@ export default function AccountDeletionPage(props: {
             {confirmError && (
               <>
                 <p className="account-message error" role="alert">{confirmError}</p>
-                {submittedRef.current && <a href="/elimina-account">Richiedi un nuovo link</a>}
+                {submittedRef.current && <a href="/elimina-account/">Richiedi un nuovo link</a>}
               </>
             )}
             <button className="public-danger-button" type="button" disabled={!understood || confirmState === 'busy' || submittedRef.current} onClick={() => void submitConfirmation()}>

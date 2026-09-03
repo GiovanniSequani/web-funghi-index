@@ -497,6 +497,11 @@ function App() {
   return (
     <main className="app-shell">
       <div ref={mapContainerRef} className="map-canvas" />
+      <nav className="map-legal-links" aria-label="Documenti legali">
+        <a href="/termini/">Termini</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/account-e-dati/">Account e dati</a>
+      </nav>
       <div className="app-banner" aria-hidden="true">
         Indice Funghi
       </div>

@@ -178,7 +178,7 @@ export function AccountLifecyclePanel(props: {
           <details>
             <summary><FileText size={16} aria-hidden="true" /> Termini · versione {LEGAL_DOCUMENTS.terms.version}</summary>
             <div className="lifecycle-document-scroll"><LegalDocument kind="terms" compact /></div>
-            <a href="/termini" target="_blank" rel="noreferrer">Apri i Termini in una pagina separata</a>
+            <a href="/termini/" target="_blank" rel="noreferrer">Apri i Termini in una pagina separata</a>
           </details>
           <details>
             <summary><FileText size={16} aria-hidden="true" /> Privacy · versione {LEGAL_DOCUMENTS.privacy.version}</summary>

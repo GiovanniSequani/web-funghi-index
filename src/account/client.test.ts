@@ -23,7 +23,7 @@ const track: GpxTrack = {
 };
 
 describe('account Supabase client', () => {
-  it('invia tutti i consensi obbligatori e lo username lowercase al signup', async () => {
+  it('invia solo i consensi legali obbligatori e lo username lowercase al signup', async () => {
     const signUpMock = vi.fn().mockResolvedValue({ data: { session: null }, error: null });
     const supabase = { auth: { signUp: signUpMock } } as unknown as SupabaseClient;
 
@@ -36,7 +36,6 @@ describe('account Supabase client', () => {
           username: 'mario_rossi',
           terms_accepted: true,
           privacy_accepted: true,
-          raw_gpx_research_consent: true,
         },
       },
     }));

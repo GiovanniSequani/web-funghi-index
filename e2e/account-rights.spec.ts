@@ -9,7 +9,7 @@ for (const viewport of [
     await page.route('**/rest/v1/rpc/request_external_account_deletion', (route) =>
       route.fulfill({ contentType: 'application/json', body: JSON.stringify({ accepted: true }) }),
     );
-    await page.goto('/elimina-account');
+    await page.goto('/elimina-account/');
     await page.getByLabel('Email account').fill('utente@example.test');
     await page.getByRole('button', { name: 'Invia richiesta' }).click();
     await expect(page.getByRole('status')).toContainText('Se la richiesta può essere elaborata');
@@ -30,7 +30,7 @@ test('callback: fragment rimosso, conferma esplicita e token inviato una sola vo
     });
   });
 
-  await page.goto('/elimina-account#token=' + token);
+  await page.goto('/elimina-account/#token=' + token);
   await expect.poll(() => new URL(page.url()).hash).toBe('');
   expect(calls).toBe(0);
   await page.getByRole('checkbox').check();
@@ -48,7 +48,7 @@ for (const scenario of ['token scaduto', 'token già usato']) {
         body: JSON.stringify({ message: 'verification token is invalid or expired' }),
       }),
     );
-    await page.goto('/elimina-account#token=' + 'b'.repeat(64));
+    await page.goto('/elimina-account/#token=' + 'b'.repeat(64));
     await page.getByRole('checkbox').check();
     await page.getByRole('button', { name: 'Conferma eliminazione definitiva' }).click();
     await expect(page.getByRole('alert')).toContainText('scaduto oppure è già stato usato');
@@ -58,7 +58,7 @@ for (const scenario of ['token scaduto', 'token già usato']) {
 
 test('errore di rete pubblico: messaggio chiaro e nessuna falsa conferma', async ({ page }) => {
   await page.route('**/rest/v1/rpc/request_external_account_deletion', (route) => route.abort('failed'));
-  await page.goto('/elimina-account');
+  await page.goto('/elimina-account/');
   await page.getByLabel('Email account').fill('utente@example.test');
   await page.getByRole('button', { name: 'Invia richiesta' }).click();
   await expect(page.getByRole('alert')).toContainText('Errore di rete');

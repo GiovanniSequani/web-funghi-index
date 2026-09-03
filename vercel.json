@@ -35,7 +35,7 @@
                                     ]
                     },
                     {
-                        "source":  "/elimina-account",
+                        "source":  "/elimina-account/",
                         "headers":  [
                                         {
                                             "key":  "Cache-Control",
