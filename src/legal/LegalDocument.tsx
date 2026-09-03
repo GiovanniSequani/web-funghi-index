@@ -155,8 +155,8 @@ export function LegalDocumentPage(props: { kind: LegalDocumentKind }) {
       <nav aria-label="Navigazione documenti">
         <a href="/">Mappa</a>
         <a href="/termini" aria-current={props.kind === 'terms' ? 'page' : undefined}>Termini</a>
-        <a href="/privacy" aria-current={props.kind === 'privacy' ? 'page' : undefined}>Privacy</a>
-        <a href="/account-e-dati" aria-current={props.kind === 'account' ? 'page' : undefined}>Account e dati</a>
+        <a href="/privacy/" aria-current={props.kind === 'privacy' ? 'page' : undefined}>Privacy</a>
+        <a href="/account-e-dati/" aria-current={props.kind === 'account' ? 'page' : undefined}>Account e dati</a>
       </nav>
       <div className="legal-page-heading">
         <p>Funghi Tracker</p>

@@ -97,7 +97,7 @@ export function AccountRightsPanel(props: {
           <p>Privacy e controllo dati</p>
           <h3 id="account-rights-title">I tuoi dati</h3>
         </div>
-        <a href="/account-e-dati" target="_blank" rel="noreferrer">Dettagli</a>
+        <a href="/account-e-dati/" target="_blank" rel="noreferrer">Dettagli</a>
       </header>
 
       {props.accountState === 'restricted' && (

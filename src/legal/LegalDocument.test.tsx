@@ -15,7 +15,7 @@ describe('documenti legali pubblici', () => {
   it('espone la versione esatta e la navigazione pubblica', () => {
     render(<LegalDocumentPage kind="terms" />);
     expect(screen.getByText('Versione 0.2')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Privacy' }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByRole('link', { name: 'Privacy' }).getAttribute('href')).toBe('/privacy/');
   });
 
   it('pubblica anche la pagina operativa Account e dati', () => {

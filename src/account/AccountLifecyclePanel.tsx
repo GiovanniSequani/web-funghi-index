@@ -183,7 +183,7 @@ export function AccountLifecyclePanel(props: {
           <details>
             <summary><FileText size={16} aria-hidden="true" /> Privacy · versione {LEGAL_DOCUMENTS.privacy.version}</summary>
             <div className="lifecycle-document-scroll"><LegalDocument kind="privacy" compact /></div>
-            <a href="/privacy" target="_blank" rel="noreferrer">Apri l’Informativa privacy in una pagina separata</a>
+            <a href="/privacy/" target="_blank" rel="noreferrer">Apri l’Informativa privacy in una pagina separata</a>
           </details>
         </div>
       )}

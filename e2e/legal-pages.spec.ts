@@ -11,12 +11,12 @@ for (const viewport of [
     await expect(page.getByRole('heading', { name: /Termini di utilizzo/ }).first()).toBeVisible();
     await expect(page.getByText('Versione 0.2')).toBeVisible();
 
-    await page.goto('/privacy');
-    await expect.poll(() => new URL(page.url()).pathname).toBe('/privacy');
+    await page.getByRole('link', { name: 'Privacy' }).click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/privacy/');
     await expect(page.getByRole('heading', { name: /Informativa privacy/ }).first()).toBeVisible();
 
-    await page.goto('/account-e-dati');
-    await expect.poll(() => new URL(page.url()).pathname).toBe('/account-e-dati');
+    await page.getByRole('link', { name: 'Account e dati' }).click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/account-e-dati/');
     await expect(page.getByRole('heading', { name: /Account e dati/ }).first()).toBeVisible();
 
     await page.getByRole('link', { name: 'Termini' }).click();

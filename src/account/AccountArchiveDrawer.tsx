@@ -208,7 +208,7 @@ function AuthForm(props: {
                   ? 'Dichiaro di aver letto l’informativa privacy corrente'
                   : 'Ho letto e accetto il trattamento dei dati necessario per account e archivio privato'}
                 {lifecycleRegistration
-                  ? <small>Versione {props.lifecycleConfig?.current_privacy_version} · <a href="/privacy" target="_blank" rel="noreferrer">Leggi</a></small>
+                  ? <small>Versione {props.lifecycleConfig?.current_privacy_version} · <a href="/privacy/" target="_blank" rel="noreferrer">Leggi</a></small>
                   : props.config && <small>Privacy versione {props.config.privacy_version}</small>}
               </span>
             </label>

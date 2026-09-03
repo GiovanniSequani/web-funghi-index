@@ -79,8 +79,8 @@ export default function AccountDeletionPage(props: {
     <main className="legal-page account-deletion-page">
       <nav aria-label="Navigazione account">
         <a href="/"><ArrowLeft size={15} aria-hidden="true" /> Mappa</a>
-        <a href="/account-e-dati">Account e dati</a>
-        <a href="/privacy">Privacy</a>
+        <a href="/account-e-dati/">Account e dati</a>
+        <a href="/privacy/">Privacy</a>
       </nav>
 
       <div className="deletion-page-shell">
