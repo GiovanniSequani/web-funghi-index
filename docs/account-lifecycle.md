@@ -1,4 +1,4 @@
-﻿# Account lifecycle frontend
+# Account lifecycle frontend
 
 This document describes the web enforcement of the FunghiTracker contributor
 account lifecycle. The backend contracts remain authoritative.
@@ -48,8 +48,7 @@ authoritative product documents. Their draft/not-effective banners remain
 visible. Acceptance is disabled if the versions requested by the backend do
 not exactly match the bundled versions.
 
-Cloudflare SPA fallbacks for /termini and /privacy are declared in
-public/_redirects.
+Cloudflare serves /termini and /privacy through its native SPA fallback. The build intentionally contains no top-level 404.html and no _redirects rules that rewrite to /index.html, because that target is canonicalized to / and would discard the client route before React starts.
 
 ## Restricted and deletion states
 

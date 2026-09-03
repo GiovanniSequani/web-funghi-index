@@ -1,16 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('Cloudflare auth routes', () => {
-  it('pubblica fallback SPA espliciti per confirm e recovery', () => {
-    const redirects = readFileSync('public/_redirects', 'utf8');
-    expect(redirects).toContain('/auth/confirm /index.html 200');
-    expect(redirects).toContain('/auth/recovery /index.html 200');
-    expect(redirects).toContain('/auth/mobile-confirm /index.html 200');
-    expect(redirects).toContain('/termini /index.html 200');
-    expect(redirects).toContain('/privacy /index.html 200');
-    expect(redirects).toContain('/account-e-dati /index.html 200');
-    expect(redirects).toContain('/elimina-account /index.html 200');
+  it('usa il fallback SPA nativo di Cloudflare senza redirect canonici alla root', () => {
+    expect(existsSync('public/_redirects')).toBe(false);
+    expect(existsSync('public/404.html')).toBe(false);
   });
 
   it('evita cache e referrer sulle pagine che ricevono token', () => {

@@ -6,12 +6,22 @@ for (const viewport of [
 ]) {
   test(viewport.name + ': documenti legali pubblici e responsive', async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
     await page.goto('/termini');
     await expect(page.getByRole('heading', { name: /Termini di utilizzo/ }).first()).toBeVisible();
     await expect(page.getByText('Versione 0.2')).toBeVisible();
-    await page.getByRole('link', { name: 'Privacy' }).click();
+
+    await page.goto('/privacy');
     await expect.poll(() => new URL(page.url()).pathname).toBe('/privacy');
     await expect(page.getByRole('heading', { name: /Informativa privacy/ }).first()).toBeVisible();
+
+    await page.goto('/account-e-dati');
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/account-e-dati');
+    await expect(page.getByRole('heading', { name: /Account e dati/ }).first()).toBeVisible();
+
+    await page.getByRole('link', { name: 'Termini' }).click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/termini');
+
     const documentWidth = await page.locator('.legal-page').evaluate((element) => element.scrollWidth);
     expect(documentWidth).toBeLessThanOrEqual(viewport.width);
   });

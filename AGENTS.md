@@ -38,6 +38,10 @@ The site is a static React 19 + TypeScript application built by Vite.
   fail-closed access behavior.
 - `public/_headers` is copied into `dist/` for hosts that support the
   Cloudflare-style headers file.
+- Cloudflare direct routes rely on Pages native SPA fallback: keep both
+  `public/_redirects` and a top-level `public/404.html` absent. Rewriting client
+  routes to `/index.html` makes Pages canonicalize them to `/` before React can
+  inspect the pathname.
 - `vercel.json` mirrors the security headers for Vercel.
 - `dist/` and `.env*` are generated/local state and are not committed.
 

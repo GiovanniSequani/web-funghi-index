@@ -558,7 +558,7 @@ export function AccountArchiveDrawer(props: {
     }
   };
   const handleDelete = async (track: GpxTrack) => {
-    if (!partialDeletes.has(track.id) && !window.confirm(`Eliminare definitivamente â€œ${track.display_name}â€?`)) return;
+    if (!partialDeletes.has(track.id) && !window.confirm(`Eliminare definitivamente “${track.display_name}”?`)) return;
     setTrackActions((current) => ({ ...current, [track.id]: 'delete' }));
     setArchiveError(null);
     try {
@@ -605,7 +605,7 @@ export function AccountArchiveDrawer(props: {
       </header>
 
       <div className="account-drawer-content">
-        {sessionState.loading && <div className="account-state"><span className="details-spinner" /> Ripristino sessioneâ€¦</div>}
+        {sessionState.loading && <div className="account-state"><span className="details-spinner" /> Ripristino sessione…</div>}
         {sessionState.error && <p className="account-message error" role="alert">{sessionState.error}</p>}
 
         {!sessionState.loading && !sessionState.session && (
@@ -646,7 +646,7 @@ export function AccountArchiveDrawer(props: {
                 });
                 if (!result.session) {
                   setAuthView('login');
-                  setAuthNotice('Account creato. Controlla lâ€™email e confermala prima di accedere.');
+                  setAuthNotice('Account creato. Controlla l’email e confermala prima di accedere.');
                 }
               })}
               onPasswordReset={(email) => runAuth(async () => {
@@ -708,19 +708,19 @@ export function AccountArchiveDrawer(props: {
               <div className="archive-summary">
                 <div>
                   <span>Tracce pronte</span>
-                  <strong>{archive?.tracks.length ?? 'â€”'}</strong>
+                  <strong>{archive?.tracks.length ?? '—'}</strong>
                 </div>
                 <div>
                   <span>Limite tracce</span>
-                  <strong>{archive?.config.max_tracks_per_user ?? publicConfig?.max_tracks_per_user ?? 'â€”'}</strong>
+                  <strong>{archive?.config.max_tracks_per_user ?? publicConfig?.max_tracks_per_user ?? '—'}</strong>
                 </div>
                 <div>
                   <span>Massimo per file</span>
-                  <strong>{archive?.config ? formatBytes(archive.config.max_compressed_bytes) : 'â€”'}</strong>
+                  <strong>{archive?.config ? formatBytes(archive.config.max_compressed_bytes) : '—'}</strong>
                 </div>
                 <div>
                   <span>GPX non compresso</span>
-                  <strong>{archive?.config ? formatBytes(archive.config.max_uncompressed_bytes) : 'â€”'}</strong>
+                  <strong>{archive?.config ? formatBytes(archive.config.max_uncompressed_bytes) : '—'}</strong>
                 </div>
               </div>
               <p className="account-usage-note">I limiti sono quelli attualmente configurati per il tuo account. La lista mostra esclusivamente le tracce pronte.</p>
@@ -747,12 +747,12 @@ export function AccountArchiveDrawer(props: {
                 <button type="button" onClick={() => void refreshArchive()}>Riprova</button>
               </div>
             )}
-            {loadingArchive && <div className="account-state"><span className="details-spinner" /> Caricamento archivioâ€¦</div>}
+            {loadingArchive && <div className="account-state"><span className="details-spinner" /> Caricamento archivio…</div>}
             {!loadingArchive && archive && archive.tracks.length === 0 && (
               <div className="account-empty">
                 <FolderArchive size={30} aria-hidden="true" />
                 <strong>Nessuna traccia pronta</strong>
-                <p>Le tracce archiviate dallâ€™app compariranno qui al termine del caricamento.</p>
+                <p>Le tracce archiviate dall’app compariranno qui al termine del caricamento.</p>
               </div>
             )}
             {archive && archive.tracks.length > 0 && (
