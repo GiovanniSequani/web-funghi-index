@@ -7,3 +7,6 @@
 /auth/*
   Cache-Control: no-store
   Referrer-Policy: no-referrer
+/elimina-account
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer

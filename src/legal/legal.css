@@ -1,0 +1,134 @@
+.legal-page {
+  min-height: 100dvh;
+  padding: 28px max(22px, calc((100vw - 860px) / 2)) 70px;
+  color: #1b271d;
+  background: #f4f6f1;
+}
+.legal-page nav { display: flex; gap: 8px; margin-bottom: 38px; }
+.legal-page nav a { padding: 8px 11px; border-radius: 7px; color: #36523a; font-size: 13px; font-weight: 750; text-decoration: none; }
+.legal-page nav a:hover, .legal-page nav a[aria-current="page"] { color: #162a1a; background: #dfe9de; }
+.legal-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid #cbd7ca; }
+.legal-page-heading p { margin: 0; color: #55705a; font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.legal-page-heading span { color: #647267; font-size: 12px; }
+.legal-document { max-width: 780px; margin: 0 auto; font-size: 15px; line-height: 1.68; }
+.legal-document h1 { margin: 34px 0 10px; color: #142318; font-size: clamp(28px, 5vw, 42px); line-height: 1.15; }
+.legal-document h2 { margin: 36px 0 11px; color: #1b3020; font-size: 21px; line-height: 1.25; }
+.legal-document h3 { margin: 26px 0 9px; color: #28432d; font-size: 17px; }
+.legal-document p { margin: 10px 0; }
+.legal-document ul { margin: 10px 0; padding-left: 23px; }
+.legal-document li + li { margin-top: 6px; }
+.legal-document a { color: #246c35; text-underline-offset: 2px; }
+.legal-table-wrap { max-width: 100%; margin: 18px 0; overflow-x: auto; }
+.legal-document table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.legal-document th, .legal-document td { padding: 10px; border: 1px solid #bdccbd; text-align: left; vertical-align: top; }
+.legal-document th { background: #e4ece3; }
+.legal-document.compact { max-width: none; color: #cbd7c7; font-size: 12px; line-height: 1.55; }
+.legal-document.compact h1 { font-size: 20px; color: #eef4e9; }
+.legal-document.compact h2 { margin-top: 24px; font-size: 16px; color: #e3ebdf; }
+.legal-document.compact h3 { font-size: 14px; color: #d7e4d3; }
+.legal-document.compact table { font-size: 11px; }
+.legal-document.compact th, .legal-document.compact td { border-color: #3b5040; }
+.legal-document.compact th { background: #18251a; }
+@media (max-width: 600px) {
+  .legal-page { padding: 18px 18px 52px; }
+  .legal-page nav { margin-bottom: 24px; }
+  .legal-page-heading { align-items: start; flex-direction: column; gap: 5px; }
+  .legal-document { font-size: 14px; }
+}
+@media print {
+  .legal-page { padding: 0; color: #000; background: #fff; }
+  .legal-page nav { display: none; }
+  .legal-document { max-width: none; font-size: 10pt; }
+  .legal-document h1 { font-size: 22pt; }
+  .legal-document h2 { page-break-after: avoid; font-size: 15pt; }
+  .legal-table-wrap { overflow: visible; }
+}
+/* Public account deletion */
+.account-deletion-page nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.deletion-page-shell { max-width: 720px; margin: 0 auto; }
+.public-deletion-card {
+  display: grid;
+  gap: 15px;
+  margin-top: 30px;
+  padding: clamp(22px, 5vw, 38px);
+  border: 1px solid #c8d5c7;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(35, 58, 39, .08);
+}
+.public-deletion-card.danger { border-color: #e1b8b1; }
+.public-deletion-card.success { border-color: #a9d2b2; }
+.public-deletion-card h1,
+.public-deletion-card p,
+.public-deletion-card ul { margin: 0; }
+.public-deletion-card h1 { color: #16271a; font-size: clamp(25px, 5vw, 34px); line-height: 1.15; }
+.public-deletion-card p,
+.public-deletion-card li { color: #45564a; font-size: 14px; line-height: 1.55; }
+.public-deletion-card ul { padding-left: 21px; }
+.public-deletion-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 14px;
+  color: #296b39;
+  background: #e4f0e4;
+}
+.public-deletion-card.danger .public-deletion-icon { color: #a6372b; background: #f8e6e3; }
+.public-deletion-card.success .public-deletion-icon { color: #27743a; background: #ddf2e2; }
+.public-deletion-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #dfcbc7;
+  border-radius: 10px;
+  background: #fff8f7;
+  color: #5f433e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.public-deletion-confirm input { margin-top: 3px; }
+.public-deletion-card form { display: grid; gap: 13px; }
+.public-deletion-card form label { display: grid; gap: 6px; color: #33483a; font-size: 13px; font-weight: 750; }
+.public-deletion-card form input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #aebfae;
+  border-radius: 9px;
+  color: #17231a;
+  background: #fff;
+  font: inherit;
+}
+.public-primary-button,
+.public-danger-button,
+.public-primary-link {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid #2f6d3c;
+  border-radius: 9px;
+  color: #fff;
+  background: #306f3e;
+  cursor: pointer;
+  font-weight: 800;
+  text-decoration: none;
+}
+.public-danger-button { border-color: #a83f33; background: #a83f33; }
+.public-primary-button:disabled,
+.public-danger-button:disabled { opacity: .5; cursor: not-allowed; }
+.public-primary-link { justify-self: start; }
+@media (max-width: 600px) {
+  .account-deletion-page { padding-inline: 14px; }
+  .public-deletion-card { margin-top: 20px; padding: 20px 17px; border-radius: 14px; }
+  .public-primary-button,
+  .public-danger-button,
+  .public-primary-link { width: 100%; }
+}

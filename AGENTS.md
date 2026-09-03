@@ -30,7 +30,12 @@ The site is a static React 19 + TypeScript application built by Vite.
 - `src/pointDetails/` contains the weather and terrain clients, grid formulas, decoders, concurrent loading hook, responsive drawer, charts, and their tests.
 - `src/indexData/` contains the public `index-data` Storage client, manifest-driven
   binary decoder, stale-request-safe loading hook, popup summary, responsive
-  analysis drawer, factor ranking, and tests.
+  analysis drawer, factor ranking, and tests.`r`n- `src/account/` contains Supabase Auth, the private GPX archive,`r`n  server-authoritative lifecycle gating, personal-data export and account`r`n  deletion flows, restricted/deletion UI, and related tests.
+- `src/legal/` contains the bundled legal documents and the public `/termini`
+  and `/privacy` pages. Lifecycle acceptance is enabled only when backend and
+  bundled versions match exactly.
+- `docs/account-lifecycle.md` documents rollout fallback, RPC boundaries, and
+  fail-closed access behavior.
 - `public/_headers` is copied into `dist/` for hosts that support the
   Cloudflare-style headers file.
 - `vercel.json` mirrors the security headers for Vercel.

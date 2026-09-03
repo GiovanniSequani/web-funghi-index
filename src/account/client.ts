@@ -3,6 +3,7 @@ import { getSupabasePublicConfig } from '../pointDetails/supabaseConfig';
 import { AccountArchiveError, type ArchiveConfig, type ArchiveData, type GpxMushroomMarker, type GpxTrack, type PreparedGpxUpload, type ReserveTrackResult, type UserProfile } from './types';
 import { normalizeTrackName, normalizeUsername, toAccountError, validateTrackName } from './validation';
 import { getAuthCallbackUrl } from './authRedirects';
+import type { AccountLifecyclePublicConfig } from './lifecycle';
 
 const TRACK_COLUMNS = [
   'id',
@@ -62,28 +63,56 @@ export async function signIn(email: string, password: string): Promise<Session> 
   return data.session;
 }
 
-export async function signUp(input: {
+export type SignUpInput = {
   email: string;
   password: string;
   username: string;
-}, supabase: SupabaseClient = getAccountSupabaseClient()): Promise<{ session: Session | null }> {
+  lifecycleConfig: AccountLifecyclePublicConfig;
+};
+
+export function buildSignUpMetadata(input: SignUpInput): Record<string, unknown> {
+  const username = normalizeUsername(input.username);
+  if (!input.lifecycleConfig.api_available || !input.lifecycleConfig.lifecycle_enabled) {
+    return {
+      username,
+      terms_accepted: true,
+      privacy_accepted: true,
+      raw_gpx_research_consent: true,
+    };
+  }
+  const termsVersion = input.lifecycleConfig.current_terms_version;
+  const privacyVersion = input.lifecycleConfig.current_privacy_version;
+  if (!termsVersion || !privacyVersion) {
+    throw new AccountArchiveError(
+      'lifecycle_unavailable',
+      'Le versioni correnti dei documenti non sono disponibili. Riprova più tardi.',
+    );
+  }
+  return {
+    username,
+    terms_accepted: true,
+    privacy_acknowledged: true,
+    terms_version: termsVersion,
+    privacy_version: privacyVersion,
+    terms_acceptance_source: 'web',
+  };
+}
+
+export async function signUp(
+  input: SignUpInput,
+  supabase: SupabaseClient = getAccountSupabaseClient(),
+): Promise<{ session: Session | null }> {
   const { data, error } = await supabase.auth.signUp({
     email: input.email.trim(),
     password: input.password,
     options: {
       emailRedirectTo: getAuthCallbackUrl('/auth/confirm'),
-      data: {
-        username: normalizeUsername(input.username),
-        terms_accepted: true,
-        privacy_accepted: true,
-        raw_gpx_research_consent: true,
-      },
+      data: buildSignUpMetadata(input),
     },
   });
   if (error) throw toAccountError(error);
   return { session: data.session };
 }
-
 export async function requestPasswordReset(
   email: string,
   supabase: SupabaseClient = getAccountSupabaseClient(),

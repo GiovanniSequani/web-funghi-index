@@ -19,7 +19,7 @@ export function normalizeTrackName(value: string): string {
 export function validateTrackName(value: string): string | null {
   const normalized = normalizeTrackName(value);
   if (normalized.length < 1 || normalized.length > 120) return 'Il nome deve contenere da 1 a 120 caratteri.';
-  if(/[\u0000-\u001f\u007f/\\]/.test(normalized)) return 'Il nome non può contenere caratteri di controllo, / o \\.';
+  if(/[\u0000-\u001f\u007f/\\]/.test(normalized)) return 'Il nome non puÃ² contenere caratteri di controllo, / o \\.';
   return null;
 }
 type ErrorLike = {
@@ -36,25 +36,49 @@ export function toAccountError(error: unknown): AccountArchiveError {
   const status = candidate.status;
 
   if (status === 401 || status === 403 || /jwt|session.*expired|refresh token/.test(message)) {
-    return new AccountArchiveError('session_expired', 'La sessione è scaduta. Accedi di nuovo.', { cause: error });
+    return new AccountArchiveError('session_expired', 'La sessione Ã¨ scaduta. Accedi di nuovo.', { cause: error });
   }
   if (/invalid login credentials/.test(message)) {
     return new AccountArchiveError('invalid_credentials', 'Email o password non corretti.', { cause: error });
   }
   if (/email not confirmed/.test(message)) {
-    return new AccountArchiveError('email_not_confirmed', 'Conferma l’email prima di accedere.', { cause: error });
+    return new AccountArchiveError('email_not_confirmed', 'Conferma lâ€™email prima di accedere.', { cause: error });
+  }
+  if (/account access is restricted|account state does not permit/.test(message)) {
+    return new AccountArchiveError('account_restricted', 'Lâ€™account ha accesso limitato. Consulta lo stato e i documenti del profilo.', { cause: error });
+  }
+  if (/document version is not current/.test(message)) {
+    return new AccountArchiveError('document_outdated', 'Ãˆ disponibile una nuova versione dei documenti. Ricarica la schermata prima di continuare.', { cause: error });
+  }
+  if (/account lifecycle is not enabled|configurazione lifecycle|versioni correnti dei documenti/.test(message)) {
+    return new AccountArchiveError('lifecycle_unavailable', 'La gestione dello stato account non Ã¨ temporaneamente disponibile. Riprova piÃ¹ tardi.', { cause: error });
+  }
+  if (/account rights are not enabled|account_export_jobs|schema cache.*account_export_jobs|could not find the table.*account_export_jobs|could not find the function.*(?:request_my_data_export|request_my_account_deletion_verification|request_external_account_deletion|confirm_account_deletion)|schema cache.*(?:request_my_data_export|request_my_account_deletion_verification|request_external_account_deletion|confirm_account_deletion)/.test(message)) {
+    return new AccountArchiveError('rights_unavailable', 'Export ed eliminazione account non sono ancora disponibili. Riprova piÃ¹ tardi.', { cause: error });
+  }
+  if (/data export rate limit exceeded/.test(message)) {
+    return new AccountArchiveError('export_rate_limited', 'Hai giÃ  richiesto un export di recente. Controlla lo stato del job corrente o riprova piÃ¹ tardi.', { cause: error });
+  }
+  if (/export must be requested before deletion is confirmed/.test(message)) {
+    return new AccountArchiveError('account_restricted', 'Lâ€™export deve essere richiesto prima di confermare la cancellazione dellâ€™account.', { cause: error });
+  }
+  if (/verification token is invalid or expired/.test(message)) {
+    return new AccountArchiveError('deletion_token_invalid', 'Il link non Ã¨ valido, Ã¨ scaduto oppure Ã¨ giÃ  stato usato. Richiedi una nuova email.', { cause: error });
+  }
+  if (/deletion verification rate limit exceeded/.test(message)) {
+    return new AccountArchiveError('deletion_rate_limited', 'Controlla lâ€™email: se la richiesta puÃ² essere elaborata riceverai il link di conferma.', { cause: error });
   }
   if (/quota.*exceed/.test(message)) {
     return new AccountArchiveError('quota_exceeded', 'Hai raggiunto il limite di tracce configurato.', { cause: error });
   }
   if (/track.*not found|traccia.*non trovata|no rows|not found/.test(message)) {
-    return new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna l’archivio e riprova.', { cause: error });
+    return new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna lâ€™archivio e riprova.', { cause: error });
   }
   if (/display.?name|track.?name|invalid.*name|nome.*non valid/.test(message)) {
-    return new AccountArchiveError('invalid_track_name', 'Il nome della traccia non è valido.', { cause: error });
+    return new AccountArchiveError('invalid_track_name', 'Il nome della traccia non Ã¨ valido.', { cause: error });
   }
   if (/username|duplicate|unique|database error saving new user/.test(message)) {
-    return new AccountArchiveError('duplicate_username', 'Username già in uso. Scegline un altro.', { cause: error });
+    return new AccountArchiveError('duplicate_username', 'Username giÃ  in uso. Scegline un altro.', { cause: error });
   }
   if (error instanceof TypeError || /fetch|network|failed to fetch/.test(message)) {
     return new AccountArchiveError('network', 'Errore di rete. Controlla la connessione e riprova.', { cause: error });

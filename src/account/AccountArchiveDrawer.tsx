@@ -36,6 +36,16 @@ import { decodeCloudGpx, prepareImportedGpx } from './gpx';
 import { formatTrackDate, getTrackDateIso } from './trackDate';
 import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, CloudMapTrack, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
 import { normalizeTrackName, normalizeUsername, safeDownloadName, toAccountError, validateTrackName, validateUsername } from './validation';
+import { AccountLifecyclePanel } from './AccountLifecyclePanel';
+import { AccountRightsPanel } from './AccountRightsPanel';
+import {
+  acceptCurrentContributorTerms,
+  recordMyLegalNoticeSeen,
+  refuseCurrentContributorTerms,
+} from './lifecycleClient';
+import type { AccountLifecycleState } from './useAccountLifecycle';
+import type { AccountLifecyclePublicConfig } from './lifecycle';
+import { bundledDocumentsMatch } from '../legal/LegalDocument';
 import './account.css';
 
 type AuthView = 'login' | 'register';
@@ -51,6 +61,7 @@ function formatBytes(value: number): string {
 function AuthForm(props: {
   view: AuthView;
   config: ArchiveConfig | null;
+  lifecycleConfig: AccountLifecyclePublicConfig | null;
   busy: boolean;
   error: string | null;
   notice: string | null;
@@ -67,6 +78,17 @@ function AuthForm(props: {
   const [acceptResearch, setAcceptResearch] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [resetMode, setResetMode] = React.useState(false);
+  const lifecycleRegistration = Boolean(
+    props.lifecycleConfig?.api_available && props.lifecycleConfig.lifecycle_enabled,
+  );
+  const lifecycleDocumentsReady = lifecycleRegistration
+    && bundledDocumentsMatch(
+      props.lifecycleConfig?.current_terms_version ?? null,
+      props.lifecycleConfig?.current_privacy_version ?? null,
+    );
+  const registrationReady = lifecycleRegistration
+    ? lifecycleDocumentsReady
+    : Boolean(props.lifecycleConfig && props.config);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -81,8 +103,10 @@ function AuthForm(props: {
         setLocalError(usernameError);
         return;
       }
-      if (!acceptTerms || !acceptPrivacy || !acceptResearch) {
-        setLocalError('Per registrarti devi accettare tutti e tre i consensi richiesti.');
+      if (!acceptTerms || !acceptPrivacy || (!lifecycleRegistration && !acceptResearch)) {
+        setLocalError(lifecycleRegistration
+          ? 'Per registrarti devi accettare i Termini e dichiarare di aver letto l’informativa privacy.'
+          : 'Per registrarti devi accettare tutti e tre i consensi richiesti.');
         return;
       }
       await props.onRegister(email, password, normalizeUsername(username));
@@ -165,34 +189,45 @@ function AuthForm(props: {
 
         {props.view === 'register' && !resetMode && (
           <div className="legal-acceptances">
-            {!props.config && <p className="account-inline-note">Caricamento versioni legali…</p>}
+            {!registrationReady && <p className="account-inline-note">Caricamento versioni legali…</p>}
             <label>
               <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
               <span>
-                Accetto i termini di utilizzo dell’archivio GPX
-                {props.config && <small>Versione {props.config.terms_version}</small>}
+                {lifecycleRegistration
+                  ? 'Accetto i Termini di utilizzo e dichiaro di avere almeno 18 anni'
+                  : 'Accetto i termini di utilizzo dell’archivio GPX'}
+                {lifecycleRegistration
+                  ? <small>Versione {props.lifecycleConfig?.current_terms_version} · <a href="/termini" target="_blank" rel="noreferrer">Leggi</a></small>
+                  : props.config && <small>Versione {props.config.terms_version}</small>}
               </span>
             </label>
             <label>
               <input type="checkbox" checked={acceptPrivacy} onChange={(event) => setAcceptPrivacy(event.target.checked)} />
               <span>
-                Ho letto e accetto il trattamento dei dati necessario per account e archivio privato
-                {props.config && <small>Privacy versione {props.config.privacy_version}</small>}
+                {lifecycleRegistration
+                  ? 'Dichiaro di aver letto l’informativa privacy corrente'
+                  : 'Ho letto e accetto il trattamento dei dati necessario per account e archivio privato'}
+                {lifecycleRegistration
+                  ? <small>Versione {props.lifecycleConfig?.current_privacy_version} · <a href="/privacy" target="_blank" rel="noreferrer">Leggi</a></small>
+                  : props.config && <small>Privacy versione {props.config.privacy_version}</small>}
               </span>
             </label>
-            <label>
+            {!lifecycleRegistration && <label>
               <input type="checkbox" checked={acceptResearch} onChange={(event) => setAcceptResearch(event.target.checked)} />
               <span>
                 Acconsento all’uso per ricerca dei GPX raw in forma anonima, senza user ID, nome file o percorso Storage
                 {props.config && <small>Consenso ricerca versione {props.config.research_consent_version}</small>}
               </span>
-            </label>
+            </label>}
+            {lifecycleRegistration && !lifecycleDocumentsReady && (
+              <p className="account-message error" role="alert">I documenti richiesti dal server non corrispondono a quelli inclusi nel sito. Registrazione temporaneamente bloccata.</p>
+            )}
           </div>
         )}
 
         {(localError || props.error) && <p className="account-message error" role="alert">{localError ?? props.error}</p>}
         {props.notice && <p className="account-message success" role="status">{props.notice}</p>}
-        <button className="account-primary" type="submit" disabled={props.busy || (props.view === 'register' && !props.config)}>
+        <button className="account-primary" type="submit" disabled={props.busy || (props.view === 'register' && !registrationReady)}>
           {props.busy ? 'Attendi…' : resetMode ? 'Invia link di recupero' : props.view === 'login' ? 'Accedi' : 'Crea account'}
         </button>
         {props.view === 'login' && (
@@ -273,6 +308,7 @@ function TrackRow(props: {
 
 export function AccountArchiveDrawer(props: {
   sessionState: AccountSessionState;
+  lifecycle: AccountLifecycleState;
   onClose: () => void;
   initialView?: AuthView;
   onShowTrack: (track: CloudMapTrack) => void;
@@ -329,7 +365,7 @@ export function AccountArchiveDrawer(props: {
   }, []);
 
   const refreshArchive = React.useCallback(async () => {
-    if (!sessionState.session) return;
+    if (!sessionState.session || !props.lifecycle.fullAccess) return;
     const sequence = ++loadSequence.current;
     setLoadingArchive(true);
     setArchiveError(null);
@@ -346,17 +382,19 @@ export function AccountArchiveDrawer(props: {
     } finally {
       if (sequence === loadSequence.current) setLoadingArchive(false);
     }
-  }, [sessionState.session]);
+  }, [props.lifecycle.fullAccess, sessionState.session]);
 
   React.useEffect(() => {
-    if (!sessionState.session) {
+    if (!sessionState.session || !props.lifecycle.fullAccess) {
       loadSequence.current += 1;
       setArchive(null);
+      setPreparedUpload(null);
+      setTrackDetails({});
       setLoadingArchive(false);
       return;
     }
     void refreshArchive();
-  }, [refreshArchive, sessionState.session]);
+  }, [props.lifecycle.fullAccess, refreshArchive, sessionState.session]);
 
   React.useEffect(() => {
     if (!archive) return;
@@ -388,6 +426,18 @@ export function AccountArchiveDrawer(props: {
     } finally {
       setAuthBusy(false);
     }
+  };
+
+  const runLifecycleAction = async (
+    action: (termsVersion: string, privacyVersion: string) => Promise<import('./lifecycle').AccountAccess>,
+  ) => {
+    const termsVersion = props.lifecycle.config?.current_terms_version;
+    const privacyVersion = props.lifecycle.config?.current_privacy_version;
+    if (!termsVersion || !privacyVersion) {
+      throw new Error('Le versioni correnti dei documenti non sono disponibili.');
+    }
+    const nextAccess = await action(termsVersion, privacyVersion);
+    props.lifecycle.applyAccess(nextAccess);
   };
 
   const handleDownload = async (track: GpxTrack) => {
@@ -573,6 +623,7 @@ export function AccountArchiveDrawer(props: {
             <AuthForm
               view={authView}
               config={publicConfig}
+              lifecycleConfig={props.lifecycle.config}
               busy={authBusy}
               error={authError}
               notice={authNotice}
@@ -583,9 +634,16 @@ export function AccountArchiveDrawer(props: {
               }}
               onLogin={(email, password) => runAuth(async () => {
                 await signIn(email, password);
+                await props.lifecycle.refresh('interactive_login');
               })}
               onRegister={(email, password, username) => runAuth(async () => {
-                const result = await signUp({ email, password, username });
+                if (!props.lifecycle.config) throw new Error('Configurazione account non disponibile. Riprova.');
+                const result = await signUp({
+                  email,
+                  password,
+                  username,
+                  lifecycleConfig: props.lifecycle.config,
+                });
                 if (!result.session) {
                   setAuthView('login');
                   setAuthNotice('Account creato. Controlla lâ€™email e confermala prima di accedere.');
@@ -599,7 +657,26 @@ export function AccountArchiveDrawer(props: {
           </>
         )}
 
-        {sessionState.session && (
+        {sessionState.session && props.lifecycle.loading && (
+          <div className="account-state"><span className="details-spinner" /> Verifica stato account…</div>
+        )}
+
+        {sessionState.session && !props.lifecycle.loading && !props.lifecycle.fullAccess && (
+          <AccountLifecyclePanel
+            config={props.lifecycle.config}
+            access={props.lifecycle.access}
+            loading={props.lifecycle.loading}
+            error={props.lifecycle.error}
+            busy={authBusy}
+            onNoticeSeen={() => runLifecycleAction(recordMyLegalNoticeSeen)}
+            onAccept={() => runLifecycleAction(acceptCurrentContributorTerms)}
+            onRefuse={() => runLifecycleAction(refuseCurrentContributorTerms)}
+            onRefresh={async () => { await props.lifecycle.refresh('account_action'); }}
+            onSignOut={() => runAuth(signOut)}
+          />
+        )}
+
+        {sessionState.session && !props.lifecycle.loading && props.lifecycle.fullAccess && (
           <>
             {authError && <p className="account-message error" role="alert">{authError}</p>}
             <section className="account-profile-card">
@@ -617,6 +694,8 @@ export function AccountArchiveDrawer(props: {
                 <LogOut size={16} aria-hidden="true" /> Esci
               </button>
             </section>
+
+            <AccountRightsPanel accountState="active" />
 
             {usageOpen && <section className="account-usage">
               <div className="account-section-heading">

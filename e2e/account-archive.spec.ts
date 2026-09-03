@@ -3,7 +3,7 @@ import { gzipSync } from 'node:zlib';
 
 const visualDir = 'node_modules/.cache/visual-checks';
 
-async function mockPublicData(page: Page) {
+async function mockPublicData(page: Page, lifecycleEnabled = false) {
   await page.route('**/storage/v1/object/public/tiles/tile_sets.json**', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -13,6 +13,17 @@ async function mockPublicData(page: Page) {
           { date: '2026-08-06', version: '1' },
           { date: '2026-08-05', version: '1' },
         ],
+      }),
+    }),
+  );
+  await page.route('**/rest/v1/rpc/get_account_lifecycle_public_config', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        lifecycle_enabled: lifecycleEnabled,
+        current_terms_version: lifecycleEnabled ? '0.2' : null,
+        current_privacy_version: lifecycleEnabled ? '0.3' : null,
+        reaccept_days: 365,
       }),
     }),
   );
@@ -78,6 +89,31 @@ async function mockAuthenticatedAccount(page: Page) {
         raw_gpx_research_consent: true,
         raw_gpx_research_consent_version: '2026-08-06',
       }),
+    }),
+  );
+  await page.route('**/rest/v1/account_export_jobs**', (route) =>
+    route.fulfill({ contentType: 'application/json', body: '[]' }),
+  );
+  await page.route('**/rest/v1/rpc/request_my_data_export', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'export-1',
+        status: 'pending',
+        storage_path: user.id + '/export-1.zip',
+        requested_at: now,
+        ready_at: null,
+        expires_at: null,
+        size_bytes: null,
+        last_error_code: null,
+        updated_at: now,
+      }),
+    }),
+  );
+  await page.route('**/rest/v1/rpc/request_my_account_deletion_verification', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ accepted: true, expires_in_minutes: 2880 }),
     }),
   );
   await page.route('**/rest/v1/user_gpx_tracks**', (route) =>
@@ -183,6 +219,9 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
 
   await expect(drawer.getByRole('heading', { name: 'mario_rossi' })).toBeVisible();
   await expect(drawer.getByText('mario@example.test')).toBeVisible();
+  await expect(drawer.getByRole('heading', { name: 'I tuoi dati' })).toBeVisible();
+  await drawer.getByRole('button', { name: 'Richiedi export' }).click();
+  await expect(drawer.getByText('In coda')).toBeVisible();
   await drawer.getByRole('button', { name: 'Utilizzo account' }).click();
   await expect(drawer.getByText('Tracce pronte', { exact: true })).toBeVisible();
   await expect(drawer.getByText('Limite tracce', { exact: true })).toBeVisible();
@@ -276,4 +315,62 @@ test('mobile: launcher compatto e drawer a schermo intero', async ({ page }) => 
   await expect(drawer.getByRole('button', { name: 'Indietro dalla schermata account' })).toBeVisible();
   await expect(drawer.getByText('Il tuo spazio FunghiTracker')).toBeVisible();
   await page.screenshot({ path: `${visualDir}/account-mobile.png`, fullPage: true });
+});
+test('lifecycle ristretto: documenti e riattivazione senza accesso GPX, desktop e mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 850 });
+  await mockPublicData(page, true);
+  await mockAuthenticatedAccount(page);
+  const restricted = {
+    account_state: 'restricted',
+    restriction_reason: 'terms_outdated',
+    terms_version: '0.1',
+    privacy_version: '0.2',
+    current_terms_version: '0.2',
+    current_privacy_version: '0.3',
+    legal_notice_first_seen_at: null,
+    legal_notice_privacy_version: null,
+    legal_reaccept_deadline_at: '2026-10-01T00:00:00Z',
+    last_meaningful_activity_at: null,
+    inactivity_delete_after: null,
+    full_access: false,
+    needs_terms_action: true,
+  };
+  await page.route('**/rest/v1/rpc/get_my_account_access', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(restricted) }),
+  );
+  await page.route('**/rest/v1/rpc/record_my_meaningful_activity', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(restricted) }),
+  );
+  await page.route('**/rest/v1/rpc/record_my_legal_notice_seen', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...restricted, legal_notice_first_seen_at: '2026-09-01T08:00:00Z' }) }),
+  );
+
+  let privateArchiveRequests = 0;
+  page.on('request', (request) => {
+    if (request.url().includes('/rest/v1/user_gpx_tracks')) privateArchiveRequests += 1;
+  });
+
+  await page.goto('/');
+  const canvas = page.locator('.maplibregl-canvas');
+  await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'restricted-original'));
+  await page.getByRole('button', { name: 'Accedi o registrati' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Account e archivio GPX' });
+  await drawer.getByLabel('Email').fill('mario@example.test');
+  await drawer.getByLabel('Password').fill('password');
+  await drawer.locator('.account-primary').click();
+
+  await expect(drawer.getByText('È richiesta una nuova accettazione')).toBeVisible();
+  await expect(drawer.getByText('Termini · versione 0.2')).toBeVisible();
+  await expect(drawer.getByText('Privacy · versione 0.3')).toBeVisible();
+  await expect(drawer.getByText(/restano disponibili anche con account sospeso/)).toBeVisible();
+  await expect(drawer.getByRole('button', { name: 'Richiedi export' })).toBeVisible();
+  expect(privateArchiveRequests).toBe(0);
+  await expect(page.locator('[data-map-instance="restricted-original"]')).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bounds = await drawer.boundingBox();
+  expect(bounds?.width).toBeCloseTo(390, 2);
+  expect(bounds?.height).toBeCloseTo(844, 2);
+  await expect(drawer.getByRole('button', { name: 'Indietro dalla schermata account' })).toBeVisible();
+  expect(privateArchiveRequests).toBe(0);
 });

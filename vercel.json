@@ -1,38 +1,51 @@
 {
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://*.arcgisonline.com https://server.arcgisonline.com; connect-src 'self' https://*.supabase.co https://*.arcgisonline.com https://server.arcgisonline.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "geolocation=(self), camera=(), microphone=()"
-        }
-      ]
-    },
-    {
-      "source": "/auth/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "no-referrer"
-        }
-      ]
-    }
-  ]
+    "headers":  [
+                    {
+                        "source":  "/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Content-Security-Policy",
+                                            "value":  "default-src \u0027self\u0027; script-src \u0027self\u0027 \u0027wasm-unsafe-eval\u0027; style-src \u0027self\u0027 \u0027unsafe-inline\u0027; img-src \u0027self\u0027 data: blob: https://*.supabase.co https://*.arcgisonline.com https://server.arcgisonline.com; connect-src \u0027self\u0027 https://*.supabase.co https://*.arcgisonline.com https://server.arcgisonline.com; worker-src \u0027self\u0027 blob:; child-src \u0027self\u0027 blob:; object-src \u0027none\u0027; base-uri \u0027self\u0027; frame-ancestors \u0027none\u0027; form-action \u0027self\u0027; upgrade-insecure-requests"
+                                        },
+                                        {
+                                            "key":  "X-Content-Type-Options",
+                                            "value":  "nosniff"
+                                        },
+                                        {
+                                            "key":  "Referrer-Policy",
+                                            "value":  "strict-origin-when-cross-origin"
+                                        },
+                                        {
+                                            "key":  "Permissions-Policy",
+                                            "value":  "geolocation=(self), camera=(), microphone=()"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/auth/(.*)",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-store"
+                                        },
+                                        {
+                                            "key":  "Referrer-Policy",
+                                            "value":  "no-referrer"
+                                        }
+                                    ]
+                    },
+                    {
+                        "source":  "/elimina-account",
+                        "headers":  [
+                                        {
+                                            "key":  "Cache-Control",
+                                            "value":  "no-store"
+                                        },
+                                        {
+                                            "key":  "Referrer-Policy",
+                                            "value":  "no-referrer"
+                                        }
+                                    ]
+                    }
+                ]
 }

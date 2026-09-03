@@ -8,6 +8,7 @@ import { formatTrackDate, getTrackDateIso } from './account/trackDate';
 import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditable } from './account/trackEditing';
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
+import { useAccountLifecycle } from './account/useAccountLifecycle';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
@@ -121,6 +122,7 @@ function App() {
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
   const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(false);
   const accountSession = useAccountSession();
+  const accountLifecycle = useAccountLifecycle(accountSession.session, accountSession.loading);
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
   const [editingTrackId, setEditingTrackId] = React.useState<string | null>(null);
   const [selectedEditPointIndex, setSelectedEditPointIndex] = React.useState<number | null>(null);
@@ -386,7 +388,13 @@ function App() {
     map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], layout: { 'text-field': '■', 'text-size': 14, 'text-allow-overlap': true }, paint: { 'text-color': ['match', ['get', 'kind'], 'start', '#00d94f', '#ff2f3d'], 'text-halo-width': 1.5, 'text-halo-color': '#ffffff' } });
   }, [cloudTracks, editingTrackId, mapReady, selectedEditPointIndex]);
 
-  React.useEffect(() => { if (!accountSession.session) { setCloudTracks([]); setEditingTrackId(null); } }, [accountSession.session]);
+  React.useEffect(() => {
+    if (!accountSession.session || !accountLifecycle.fullAccess) {
+      setCloudTracks([]);
+      setEditingTrackId(null);
+      setSelectedEditPointIndex(null);
+    }
+  }, [accountLifecycle.fullAccess, accountSession.session]);
 
   const showCloudTrack = React.useCallback((track: CloudMapTrack) => {
     setCloudTracks((current) => [...current.filter((item) => item.id !== track.id), track]);
@@ -522,7 +530,10 @@ function App() {
       <button
         className={`account-launcher${accountSession.session ? ' is-authenticated' : ''}`}
         type="button"
-        onClick={() => setAccountArchiveOpen(true)}
+        onClick={() => {
+          if (accountSession.session) void accountLifecycle.refresh('account_action');
+          setAccountArchiveOpen(true);
+        }}
         aria-haspopup="dialog"
         aria-expanded={accountArchiveOpen}
         aria-label={accountSession.session
@@ -771,7 +782,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onEditTrack={beginEditingTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
+        <AccountArchiveDrawer sessionState={accountSession} lifecycle={accountLifecycle} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onEditTrack={beginEditingTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
       )}
     </main>
   );

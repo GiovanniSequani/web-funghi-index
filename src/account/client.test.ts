@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import { deleteTrack, deleteTrackMarker, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, requestPasswordReset, signUp, uploadPreparedTrack } from './client';
 import type { GpxTrack, PreparedGpxUpload } from './types';
+import { LEGACY_LIFECYCLE_CONFIG } from './lifecycle';
 
 const track: GpxTrack = {
   id: '9656ae68-e657-42b0-8f15-c956b6c4d55d',
@@ -26,7 +27,7 @@ describe('account Supabase client', () => {
     const signUpMock = vi.fn().mockResolvedValue({ data: { session: null }, error: null });
     const supabase = { auth: { signUp: signUpMock } } as unknown as SupabaseClient;
 
-    await signUp({ email: 'mario@example.test', password: 'password', username: 'Mario_Rossi' }, supabase);
+    await signUp({ email: 'mario@example.test', password: 'password', username: 'Mario_Rossi', lifecycleConfig: LEGACY_LIFECYCLE_CONFIG }, supabase);
 
     expect(signUpMock).toHaveBeenCalledWith(expect.objectContaining({
       options: {
@@ -36,6 +37,38 @@ describe('account Supabase client', () => {
           terms_accepted: true,
           privacy_accepted: true,
           raw_gpx_research_consent: true,
+        },
+      },
+    }));
+  });
+
+  it('usa le versioni lifecycle correnti nel signup senza consenso ricerca legacy', async () => {
+    const signUpMock = vi.fn().mockResolvedValue({ data: { session: null }, error: null });
+    const supabase = { auth: { signUp: signUpMock } } as unknown as SupabaseClient;
+
+    await signUp({
+      email: 'mario@example.test',
+      password: 'password',
+      username: 'Mario_Rossi',
+      lifecycleConfig: {
+        api_available: true,
+        lifecycle_enabled: true,
+        current_terms_version: '0.2',
+        current_privacy_version: '0.3',
+        reaccept_days: 30,
+      },
+    }, supabase);
+
+    expect(signUpMock).toHaveBeenCalledWith(expect.objectContaining({
+      options: {
+        emailRedirectTo: 'http://localhost:5173/auth/confirm',
+        data: {
+          username: 'mario_rossi',
+          terms_accepted: true,
+          privacy_acknowledged: true,
+          terms_version: '0.2',
+          privacy_version: '0.3',
+          terms_acceptance_source: 'web',
         },
       },
     }));
