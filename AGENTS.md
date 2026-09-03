@@ -79,6 +79,15 @@ npm.cmd run build
 git status --short --branch
 ```
 
+Use the available Codex skills when they materially improve the work:
+
+- Use `frontend-design` when introducing new UI, reshaping an existing panel,
+  or making visual/UX choices that affect layout, hierarchy, copy, spacing,
+  color, or responsive behavior.
+- Use `playwright-cli` when browser automation, screenshots, mobile/desktop
+  viewport checks, route verification, or interactive UI debugging would give
+  stronger evidence than static inspection alone.
+
 ## Environment and external services
 
 The supported public environment variables are:
