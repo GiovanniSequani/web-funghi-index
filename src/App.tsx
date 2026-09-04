@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Crosshair, Layers, LocateFixed, PanelLeftClose, Palette, Pencil, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
 import { formatTrackDate, getTrackDateIso } from './account/trackDate';
@@ -120,7 +120,9 @@ function App() {
   const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
   const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
-  const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(false);
+  const [accountArchiveOpen, setAccountArchiveOpen] = React.useState(
+    () => new URLSearchParams(window.location.search).get('account') === '1',
+  );
   const accountSession = useAccountSession();
   const accountLifecycle = useAccountLifecycle(accountSession.session, accountSession.loading);
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
@@ -138,7 +140,7 @@ function App() {
   const [tilesError, setTilesError] = React.useState<string | null>(null);
   const [locationStatus, setLocationStatus] = React.useState<LocationStatus>('idle');
   const [calendarOpen, setCalendarOpen] = React.useState(false);
-  const [panelOpen, setPanelOpen] = React.useState(true);
+  const [panelOpen, setPanelOpen] = React.useState(() => !window.matchMedia('(max-width: 640px)').matches);
   const [legendOpen, setLegendOpen] = React.useState(false);
   const [calendarMonth, setCalendarMonth] = React.useState(() => parseTileDate(DEFAULT_TILE_SET.date) ?? new Date());
 
@@ -162,6 +164,16 @@ function App() {
   const calendarDays = React.useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
   const opacity = opacityPercent / 100;
 
+  React.useEffect(() => {
+    const mobileViewport = window.matchMedia('(max-width: 640px)');
+    const handleViewportChange = (event: MediaQueryListEvent) => {
+      if (!event.matches) return;
+      setPanelOpen(false);
+      setLegendOpen(false);
+    };
+    mobileViewport.addEventListener('change', handleViewportChange);
+    return () => mobileViewport.removeEventListener('change', handleViewportChange);
+  }, []);
   React.useEffect(() => { cloudTracksRef.current = cloudTracks; }, [cloudTracks]);
   React.useEffect(() => { editingTrackIdRef.current = editingTrackId; }, [editingTrackId]);
   React.useEffect(() => {
@@ -214,7 +226,6 @@ function App() {
       attributionControl: { compact: true },
     });
 
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
     map.on('load', () => setMapReady(true));
     let suppressMapClickUntil = 0;
     const selectNearestEditingPoint = (screenPoint: { x: number; y: number }, threshold: number): boolean => {
@@ -492,6 +503,16 @@ function App() {
     );
   };
 
+  const zoomMap = (direction: 1 | -1) => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (direction > 0) map.zoomIn({ duration: 180 });
+    else map.zoomOut({ duration: 180 });
+  };
+
+  const orientMapNorth = () => {
+    mapRef.current?.resetNorth({ duration: 180 });
+  };
   const editingTrack = cloudTracks.find((track) => track.id === editingTrackId) ?? null;
 
   return (
@@ -502,10 +523,26 @@ function App() {
         <a href="/privacy/">Privacy</a>
         <a href="/account-e-dati/">Account e dati</a>
       </nav>
-      <div className="app-banner" aria-hidden="true">
-        Indice Funghi
-      </div>
-      {cloudTracks.length > 0 && (
+      <a className="app-banner" href="/" aria-label="Torna alla home di FunghiTracker">
+        <span>FunghiTracker</span>
+        <small>Mappa</small>
+      </a>
+      <nav className="map-camera-controls" aria-label="Controlli mappa">
+        <div className="map-camera-cluster">
+          <button type="button" onClick={() => zoomMap(1)} title="Aumenta zoom" aria-label="Aumenta zoom">
+            <Plus size={18} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => zoomMap(-1)} title="Riduci zoom" aria-label="Riduci zoom">
+            <Minus size={18} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={orientMapNorth} title="Orienta la mappa a nord" aria-label="Orienta la mappa a nord">
+            <Compass size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <button className="map-locate-control" type="button" onClick={locateUser} title={locationMessage(locationStatus)} aria-label="Centra la posizione">
+          <LocateFixed size={18} aria-hidden="true" />
+        </button>
+      </nav>      {cloudTracks.length > 0 && (
         <aside className="cloud-tracks-panel" aria-label="Percorsi sulla mappa">
           <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => { setCloudTracks([]); setEditingTrackId(null); }}>Rimuovi tutti</button></header>
           <ul>{cloudTracks.map((track) => <li key={track.id}>
@@ -532,6 +569,21 @@ function App() {
           setSelectedEditPointIndex(null);
         }}
       />}
+      <nav className="mobile-map-toolbar" aria-label="Strumenti mappa">
+        <button type="button" className={panelOpen ? 'is-active' : ''} onClick={() => { setLegendOpen(false); setPanelOpen((open) => !open); }} aria-expanded={panelOpen} aria-controls="index-control-panel">
+          <Layers size={18} aria-hidden="true" /><span>Indice</span>
+        </button>
+        <button type="button" className={legendOpen ? 'is-active' : ''} onClick={() => { setPanelOpen(false); setLegendOpen((open) => !open); }} aria-expanded={legendOpen} aria-controls="index-legend-panel">
+          <Palette size={18} aria-hidden="true" /><span>Legenda</span>
+        </button>
+        <button type="button" data-status={locationStatus} onClick={locateUser} title={locationMessage(locationStatus)}>
+          <LocateFixed size={18} aria-hidden="true" /><span>Posizione</span>
+        </button>
+        <button type="button" className={accountSession.session ? 'is-active' : ''} onClick={() => { setPanelOpen(false); setLegendOpen(false); if (accountSession.session) void accountLifecycle.refresh('account_action'); setAccountArchiveOpen(true); }}>
+          <CircleUserRound size={18} aria-hidden="true" /><span>{accountSession.session ? 'Profilo' : 'Accedi'}</span>
+        </button>
+      </nav>
+
       <button
         className={`account-launcher${accountSession.session ? ' is-authenticated' : ''}`}
         type="button"
@@ -613,7 +665,7 @@ function App() {
       >
         <header className="panel-header">
           <div>
-            <p className="eyebrow">Indice funghi</p>
+            <p className="eyebrow">Indice sulla mappa</p>
           </div>
           <button className="icon-button" type="button" onClick={() => loadTileSets()} title="Aggiorna tileset">
             <RefreshCw size={18} aria-hidden="true" />
@@ -624,11 +676,11 @@ function App() {
         <div className="field-group">
           <span className="label-row">
             <Layers size={15} aria-hidden="true" />
-            Layer
+            Specie mostrata
           </span>
           <div className="segmented three">
             <button type="button" className={activeLayer === 'off' ? 'active' : ''} onClick={() => setActiveLayer('off')}>
-              Off
+              Nessuna
             </button>
             <button
               type="button"
@@ -650,7 +702,7 @@ function App() {
         <div className="dataset-picker">
           <span className="label-row">
             <CalendarDays size={15} aria-hidden="true" />
-            Dataset
+            Data indice
           </span>
           <div className="dataset-stepper">
             <button
@@ -658,7 +710,7 @@ function App() {
               type="button"
               onClick={() => moveDataset(1)}
               disabled={tileSets.length === 0 || selectedTileIndex === tileSets.length - 1}
-              title="Dataset meno recente"
+              title="Data precedente"
             >
               <ChevronLeft size={18} aria-hidden="true" />
             </button>
@@ -676,7 +728,7 @@ function App() {
               type="button"
               onClick={() => moveDataset(-1)}
               disabled={tileSets.length === 0 || selectedTileIndex <= 0}
-              title="Dataset piu recente"
+              title="Data successiva"
             >
               <ChevronRight size={18} aria-hidden="true" />
             </button>
@@ -754,7 +806,7 @@ function App() {
         <div className="field-group">
           <span className="label-row">
             <Crosshair size={15} aria-hidden="true" />
-            Opacita
+            Opacità layer
           </span>
           <div className="segmented four">
             {OPACITY_STEPS.map((step) => (
@@ -764,16 +816,11 @@ function App() {
                 className={opacityPercent === step ? 'active' : ''}
                 onClick={() => setOpacityPercent(step)}
               >
-                {step}
+                {step}%
               </button>
             ))}
           </div>
         </div>
-
-        <button className="locate-button" type="button" onClick={locateUser} title={locationMessage(locationStatus)}>
-          <LocateFixed size={17} aria-hidden="true" />
-          Centra posizione
-        </button>
 
       </section>
       {detailsPoint && (

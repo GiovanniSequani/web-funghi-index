@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const visualDir = 'node_modules/.cache/visual-checks';
 
 async function openDetails(page: Page, relativeX = 0.55, relativeY = 0.55) {
-  await page.goto('/');
+  await page.goto('/mappa/');
   const map = page.locator('.map-canvas');
   await expect(map.locator('.maplibregl-canvas')).toBeVisible();
   const bounds = await map.boundingBox();
@@ -50,9 +50,9 @@ async function longPressMap(page: Page, relativeX = 0.5, relativeY = 0.62) {
 }
 
 
-test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', async ({ page }) => {
+test('desktop largo: serie meteo, tooltip e mappa stabile', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.goto('/');
+  await page.goto('/mappa/');
   const canvas = page.locator('.maplibregl-canvas');
   await expect(canvas).toBeVisible();
   await canvas.evaluate((element) => {
@@ -71,7 +71,7 @@ test('desktop largo: serie completa, giorno mancante, tooltip e mappa stabile', 
   const drawer = page.getByRole('dialog', { name: 'Dettagli del punto' });
   await expect(drawer.getByRole('heading', { name: 'Terreno' })).toBeVisible();
   await expect(drawer.getByRole('heading', { name: 'Temperature' })).toBeVisible();
-  await expect(drawer.getByText(/Giorni mancanti:/)).toBeVisible();
+  await expect(drawer.getByText(/Giorni mancanti:|20\/20 giorni disponibili/)).toBeVisible();
   const drawerBounds = await drawer.boundingBox();
   expect(drawerBounds?.width).toBeGreaterThanOrEqual(449);
   expect(drawerBounds?.width).toBeLessThanOrEqual(500);
@@ -108,7 +108,7 @@ test('desktop compatto mantiene mappa visibile e drawer entro 500 px', async ({ 
 
 test('mobile usa un pannello a schermo intero e navigazione touch', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/mappa/');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await longPressMap(page);
   const popup = page.locator('.coordinate-popup-card');

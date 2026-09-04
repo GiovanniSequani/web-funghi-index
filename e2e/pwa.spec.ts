@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('mantiene il sito classico e pubblica i metadati della web app', async ({ page, request }) => {
   await page.goto('/');
 
+  await expect(page.getByRole('heading', { name: 'Capire quando il bosco sta cambiando.' })).toBeVisible();
+  await page.getByRole('link', { name: /Apri la mappa/ }).click();
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/apple-touch-icon.png');

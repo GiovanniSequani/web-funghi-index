@@ -5,6 +5,8 @@ import {
   CloudDownload,
   FolderArchive,
   HardDrive,
+  Eye,
+  EyeOff,
   LogIn,
   LogOut,
   MapPinned,
@@ -77,6 +79,7 @@ function AuthForm(props: {
   const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [resetMode, setResetMode] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
   const lifecycleRegistration = Boolean(
     props.lifecycleConfig?.api_available && props.lifecycleConfig.lifecycle_enabled,
   );
@@ -148,6 +151,8 @@ function AuthForm(props: {
           <label>
             Username
             <input
+              type="text"
+              placeholder="es. mario_rossi"
               value={username}
               onChange={(event) => setUsername(event.target.value.toLowerCase())}
               autoComplete="username"
@@ -164,6 +169,7 @@ function AuthForm(props: {
           Email
           <input
             type="email"
+            placeholder="nome@email.it"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
@@ -171,17 +177,23 @@ function AuthForm(props: {
           />
         </label>
         {!resetMode && (
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete={props.view === 'login' ? 'current-password' : 'new-password'}
-              minLength={6}
-              required
-            />
-          </label>
+          <div className="account-password-group">
+            <label htmlFor="account-password">Password</label>
+            <span className="account-password-field">
+              <input
+                id="account-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete={props.view === 'login' ? 'current-password' : 'new-password'}
+                minLength={6}
+                required
+              />
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}>
+                {showPassword ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+              </button>
+            </span>
+          </div>
         )}
 
         {props.view === 'register' && !resetMode && (
@@ -192,7 +204,7 @@ function AuthForm(props: {
               <span>
                 {lifecycleRegistration
                   ? 'Accetto i Termini di utilizzo e dichiaro di avere almeno 18 anni'
-                  : 'Accetto i termini di utilizzo dell’archivio GPX'}
+                  : 'Accetto i Termini di utilizzo'}
                 {lifecycleRegistration
                   ? <small>Versione {props.lifecycleConfig?.current_terms_version} · <a href="/termini/" target="_blank" rel="noreferrer">Leggi</a></small>
                   : props.config && <small>Versione {props.config.terms_version} · <a href="/termini/" target="_blank" rel="noreferrer">Leggi</a></small>}
@@ -203,7 +215,7 @@ function AuthForm(props: {
               <span>
                 {lifecycleRegistration
                   ? 'Dichiaro di aver letto l’informativa privacy corrente'
-                  : 'Ho letto e accetto il trattamento dei dati necessario per account e archivio privato'}
+                  : 'Dichiaro di aver letto l’informativa privacy'}
                 {lifecycleRegistration
                   ? <small>Versione {props.lifecycleConfig?.current_privacy_version} · <a href="/privacy/" target="_blank" rel="noreferrer">Leggi</a></small>
                   : props.config && <small>Versione {props.config.privacy_version} · <a href="/privacy/" target="_blank" rel="noreferrer">Leggi</a></small>}
@@ -587,8 +599,8 @@ export function AccountArchiveDrawer(props: {
           <ArrowLeft size={19} aria-hidden="true" />
         </button>
         <div>
-          <p>{sessionState.session ? 'Il tuo account' : 'FunghiTracker cloud'}</p>
-          <h1>{sessionState.session ? 'Profilo e archivio' : 'Accedi a FunghiTracker'}</h1>
+          <p>{sessionState.session ? 'Area personale' : 'Account FunghiTracker'}</p>
+          <h1>{sessionState.session ? 'Il tuo archivio' : 'Accedi o registrati'}</h1>
         </div>
         <button className="account-close desktop-only" type="button" onClick={props.onClose} aria-label="Chiudi account e archivio">
           <X size={19} aria-hidden="true" />
@@ -603,8 +615,8 @@ export function AccountArchiveDrawer(props: {
           <>
             <section className="account-intro">
               <span className="account-intro-icon" aria-hidden="true"><UserRound size={30} /></span>
-              <h2>Il tuo spazio FunghiTracker</h2>
-              <p>Crea un profilo per ritrovare e gestire dal web le tracce GPX salvate nel cloud.</p>
+              <h2>Porta le tue uscite nel cloud</h2>
+              <p>Dopo l’accesso ritrovi percorsi e ritrovamenti su ogni dispositivo.</p>
               <ul className="account-benefits">
                 <li><Cloud size={18} aria-hidden="true" /><span><strong>Archivio personale</strong>Le tracce pronte sono raccolte in un unico spazio privato.</span></li>
                 <li><CloudDownload size={18} aria-hidden="true" /><span><strong>Download immediato</strong>Scarica i GPX sui tuoi dispositivi quando ti servono.</span></li>
@@ -686,7 +698,6 @@ export function AccountArchiveDrawer(props: {
               </button>
             </section>
 
-            <AccountRightsPanel accountState="active" />
 
             {usageOpen && <section className="account-usage">
               <div className="account-section-heading">
@@ -770,6 +781,7 @@ export function AccountArchiveDrawer(props: {
                 ))}
               </ul>
             )}
+            <AccountRightsPanel accountState="active" />
           </>
         )}
       </div>

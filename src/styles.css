@@ -62,8 +62,17 @@ select {
   font-size: 14px;
   font-weight: 950;
   letter-spacing: 0;
-  pointer-events: none;
+  gap: 8px;
+  text-decoration: none;
   transform: translateX(-50%);
+}
+
+.app-banner small {
+  padding-left: 8px;
+  border-left: 1px solid rgba(221, 232, 204, 0.25);
+  color: #98ad88;
+  font-size: 10px;
+  font-weight: 750;
 }
 
 .control-panel {
@@ -971,3 +980,205 @@ button:focus-visible,
     font-size: 8px;
   }
 }
+
+/* Map workspace UX refinement */
+.mobile-map-toolbar { display: none; }
+.map-camera-controls {
+  position: absolute;
+  z-index: 3;
+  top: 84px;
+  right: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.map-camera-cluster,
+.map-locate-control {
+  overflow: hidden;
+  border: 1px solid rgba(222, 235, 215, .28);
+  border-radius: 12px;
+  background: rgba(13, 24, 16, .94);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
+  backdrop-filter: blur(12px);
+}
+
+.map-camera-cluster { display: grid; }
+
+.map-camera-controls button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #dce9d6;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.map-camera-cluster button + button { border-top: 1px solid rgba(222, 235, 215, .16); }
+.map-camera-controls button:hover { color: #fff; background: #29452d; }
+.map-camera-controls button:focus-visible { outline: 2px solid #efbf58; outline-offset: -3px; }
+.map-camera-cluster button:nth-child(3) { color: #e39a73; }
+.map-camera-cluster button:nth-child(3):hover { color: #fff; background: #573523; }
+.map-locate-control { color: #b7d9ae !important; }
+.map-locate-control:hover { background: #29452d; }
+
+@media (min-width: 641px) {
+  .control-panel {
+    top: 18px;
+    left: 18px;
+    width: 294px;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(222, 235, 215, .2);
+    border-left: 3px solid #6e9d67;
+    border-radius: 3px 15px 15px 3px;
+    background: rgba(13, 24, 16, .94);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, .3);
+  }
+  .panel-toggle { top: 20px; left: 18px; border-radius: 9px; }
+  .panel-toggle[aria-expanded="true"] { transform: translateX(304px); }
+}
+
+.control-panel .eyebrow,
+.control-panel .label-row {
+  color: #adbea6;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.control-panel .eyebrow { color: #eef3e9; font-size: 14px; }
+.control-panel .label-row { font-size: 11px; }
+.control-panel .segmented button,
+.control-panel .locate-button,
+.control-panel .date-button,
+.control-panel .icon-button,
+.control-panel .version-row button {
+  border-color: #364b3a;
+  background: #17231a;
+}
+.control-panel .segmented button { font-weight: 720; }
+.control-panel .segmented button.active { border-color: #75966f; background: #304c33; }
+.control-panel .segmented button.active.porcini { border-color: #c17a51; background: #53301f; }
+.control-panel .segmented button.active.finferli { border-color: #d9ad4c; background: #51401c; }
+.control-panel .status-strip { min-height: 28px; border: 0; border-left: 2px solid #699062; border-radius: 0; background: transparent; font-size: 10.5px; font-weight: 650; }
+.control-panel .locate-button { min-height: 40px; }
+
+.mobile-map-toolbar button:focus-visible,
+.app-banner:focus-visible { outline: 2px solid #f0bd67; outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .mobile-map-toolbar {
+    position: absolute;
+    z-index: 14;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+    height: 58px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 4px;
+    border: 1px solid rgba(225, 236, 216, .24);
+    border-radius: 16px;
+    background: rgba(12, 22, 15, .96);
+    box-shadow: 0 12px 38px rgba(0, 0, 0, .38);
+    backdrop-filter: blur(14px);
+  }
+  .mobile-map-toolbar button {
+    position: relative;
+    min-width: 0;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    padding: 0 2px;
+    border: 0;
+    border-radius: 11px;
+    color: #aebda9;
+    background: transparent;
+    cursor: pointer;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .mobile-map-toolbar button.is-active,
+  .mobile-map-toolbar button[data-status="ready"] { color: #fff; background: #2c4930; }
+  .mobile-map-toolbar button.is-active::after {
+    content: "";
+    position: absolute;
+    right: 16px;
+    bottom: 2px;
+    left: 16px;
+    height: 2px;
+    border-radius: 2px;
+    background: #e37440;
+  }
+  .panel-toggle,
+  .legend-toggle,
+  .account-launcher { display: none; }
+  .map-camera-controls {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+  .map-camera-controls button { width: 38px; height: 38px; }
+  .map-camera-cluster,
+  .map-locate-control { border-radius: 10px; }
+  .app-banner {
+    top: 10px;
+    left: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    transform: none;
+  }
+  .control-panel {
+    z-index: 12;
+    top: auto;
+    right: 10px;
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 66px);
+    left: 10px;
+    width: auto;
+    max-height: min(54vh, 430px);
+    gap: 11px;
+    padding: 14px;
+    border: 1px solid rgba(222, 235, 215, .22);
+    border-radius: 16px;
+    background: rgba(13, 24, 16, .97);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, .4);
+    transform-origin: bottom;
+  }
+  .control-panel.collapsed { transform: translateY(24px) scale(.97); }
+  .control-panel .eyebrow { font-size: 13px; }
+  .control-panel .label-row { font-size: 10px; }
+  .control-panel .segmented button { min-height: 34px; font-size: 11px; }
+  .control-panel .date-button { min-height: 38px; }
+  .control-panel .date-button strong { font-size: 13px; }
+  .control-panel .icon-button { width: 32px; height: 32px; }
+  .control-panel .dataset-stepper { grid-template-columns: 32px minmax(0, 1fr) 32px; }
+  .control-panel .locate-button { display: none; }
+  .legend-panel {
+    z-index: 13;
+    right: 10px;
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 66px);
+    left: 10px;
+    width: auto;
+    max-height: 52vh;
+    border-radius: 16px;
+  }
+  .map-legal-links {
+    right: auto;
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 68px);
+    left: 8px;
+    transform: none;
+  }
+  .maplibregl-ctrl-bottom-right { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 64px); }
+  .cloud-tracks-panel {
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 102px);
+    left: 8px;
+    max-height: min(240px, 30vh);
+  }
+  .coordinate-popup-card { width: min(250px, calc(100vw - 36px)); }
+}
+@media (max-width: 640px) { .app-shell > .account-launcher { display: none; } }

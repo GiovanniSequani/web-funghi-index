@@ -135,7 +135,7 @@ async function mockIndexData(page: Page) {
 
 async function openAnalysis(page: Page, touch = false) {
   await mockIndexData(page);
-  await page.goto('/');
+  await page.goto('/mappa/');
   const canvas = page.locator('.maplibregl-canvas');
   await expect(canvas).toBeVisible();
   await canvas.evaluate((element) => element.setAttribute('data-history-map', 'original'));

@@ -158,26 +158,31 @@ async function mockGpxDownloads(page: Page) {
     return route.fulfill({ contentType: 'application/gzip', body });
   });
 }
-async function assertNavigationBelowProfile(page: Page) {
+async function assertCameraControlsBelowProfile(page: Page) {
   const launcher = page.locator('.account-launcher');
-  const navigation = page.locator('.maplibregl-ctrl-top-right');
+  const controls = page.getByRole('navigation', { name: 'Controlli mappa' });
   const launcherBounds = await launcher.boundingBox();
-  const navigationBounds = await navigation.boundingBox();
+  const controlsBounds = await controls.boundingBox();
   expect(launcherBounds).not.toBeNull();
-  expect(navigationBounds).not.toBeNull();
-  expect(navigationBounds!.y).toBeGreaterThanOrEqual(launcherBounds!.y + launcherBounds!.height + 8);
+  expect(controlsBounds).not.toBeNull();
+  expect(controlsBounds!.y).toBeGreaterThanOrEqual(launcherBounds!.y + launcherBounds!.height + 8);
+  await expect(controls.getByRole('button', { name: 'Aumenta zoom' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Riduci zoom' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Orienta la mappa a nord' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Centra la posizione' })).toBeVisible();
+  await expect(page.locator('.maplibregl-ctrl-top-right button')).toHaveCount(0);
 }
 
 test('desktop anonimo: profilo sopra MapLibre, pannello indice semplificato e mappa stabile', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 850 });
   await mockPublicData(page);
-  await page.goto('/');
+  await page.goto('/mappa/');
   const canvas = page.locator('.maplibregl-canvas');
   await expect(canvas).toBeVisible();
   await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'account-original'));
 
   await expect(page.locator('.account-launcher strong')).toHaveText('ACCEDI');
-  await assertNavigationBelowProfile(page);
+  await assertCameraControlsBelowProfile(page);
   const controlPanel = page.locator('#index-control-panel');
   await expect(controlPanel.getByText('2 date in archivio')).toBeVisible();
   await expect(controlPanel.getByText('Path', { exact: true })).toHaveCount(0);
@@ -211,14 +216,14 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await mockPublicData(page);
   await mockAuthenticatedAccount(page);
   await mockGpxDownloads(page);
-  await page.goto('/');
+  await page.goto('/mappa/');
   const canvas = page.locator('.maplibregl-canvas');
   await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'profile-original'));
 
   await page.getByRole('button', { name: 'Accedi o registrati' }).click();
   const drawer = page.getByRole('dialog', { name: 'Account e archivio GPX' });
   await drawer.getByLabel('Email').fill('mario@example.test');
-  await drawer.getByLabel('Password').fill('password');
+  await drawer.getByLabel('Password', { exact: true }).fill('password');
   await drawer.locator('.account-primary').click();
 
   await expect(drawer.getByRole('heading', { name: 'mario_rossi' })).toBeVisible();
@@ -288,10 +293,8 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
   await page.screenshot({ path: `${visualDir}/account-mobile-authenticated.png`, fullPage: true });
 
   await drawer.getByRole('button', { name: 'Indietro dalla schermata account' }).click();
-  const authenticatedLauncherBounds = await page.locator('.account-launcher').boundingBox();
-  expect(authenticatedLauncherBounds?.width).toBeLessThanOrEqual(42);
-  await expect(page.locator('.account-launcher-copy')).toBeHidden();
-  await assertNavigationBelowProfile(page);
+  await expect(page.locator('.account-launcher')).toBeHidden();
+  await expect(page.getByRole('navigation', { name: 'Strumenti mappa' }).getByRole('button', { name: 'Profilo' })).toBeVisible();
   await expect(page.locator('[data-map-instance="profile-original"]')).toBeVisible();
   await routesPanel.getByRole('button', { name: 'Modifica Bosco rinominato' }).click();
   const mobileEditor = page.getByRole('dialog', { name: 'Modifica percorso' });
@@ -302,23 +305,34 @@ test('desktop autenticato: username, limiti e tracce hanno una gerarchia chiara'
 
 });
 
-test('mobile: launcher compatto e drawer a schermo intero', async ({ page }) => {
+test('mobile: toolbar compatta e drawer a schermo intero', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockPublicData(page);
-  await page.goto('/');
-  await expect(page.locator('.account-launcher strong')).toHaveText('ACCEDI');
-  const launcherBounds = await page.locator('.account-launcher').boundingBox();
-  expect(launcherBounds?.width).toBeLessThanOrEqual(100);
-  await assertNavigationBelowProfile(page);
+  await page.goto('/mappa/');
+  const canvas = page.locator('.maplibregl-canvas');
+  await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'mobile-toolbar-original'));
+  await expect(page.locator('.account-launcher')).toBeHidden();
+  const toolbar = page.getByRole('navigation', { name: 'Strumenti mappa' });
+  await expect(toolbar).toBeVisible();
+  await toolbar.getByRole('button', { name: 'Indice' }).click();
+  await expect(page.getByRole('region', { name: 'Controlli indice funghi' })).toBeVisible();
+  await toolbar.getByRole('button', { name: 'Indice' }).click();
+  await expect(page.getByRole('region', { name: 'Controlli indice funghi' })).toBeHidden();
 
-  await page.getByRole('button', { name: 'Accedi o registrati' }).click();
+  await toolbar.getByRole('button', { name: 'Accedi' }).click();
   const drawer = page.getByRole('dialog', { name: 'Account e archivio GPX' });
   const bounds = await drawer.boundingBox();
   expect(bounds?.width).toBeCloseTo(390, 2);
   expect(bounds?.height).toBeCloseTo(844, 2);
   await expect(drawer.getByRole('button', { name: 'Indietro dalla schermata account' })).toBeVisible();
-  await expect(drawer.getByText('Il tuo spazio FunghiTracker')).toBeVisible();
+  await expect(drawer.getByText('Porta le tue uscite nel cloud')).toBeVisible();
+  const password = drawer.getByLabel('Password', { exact: true });
+  await password.fill('password');
+  await drawer.getByRole('button', { name: 'Mostra password' }).click();
+  await expect(password).toHaveAttribute('type', 'text');
   await page.screenshot({ path: `${visualDir}/account-mobile.png`, fullPage: true });
+  await drawer.getByRole('button', { name: 'Indietro dalla schermata account' }).click();
+  await expect(page.locator('[data-map-instance="mobile-toolbar-original"]')).toBeVisible();
 });
 test('lifecycle ristretto: documenti e riattivazione senza accesso GPX, desktop e mobile', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 850 });
@@ -354,18 +368,18 @@ test('lifecycle ristretto: documenti e riattivazione senza accesso GPX, desktop 
     if (request.url().includes('/rest/v1/user_gpx_tracks')) privateArchiveRequests += 1;
   });
 
-  await page.goto('/');
+  await page.goto('/mappa/');
   const canvas = page.locator('.maplibregl-canvas');
   await canvas.evaluate((element) => element.setAttribute('data-map-instance', 'restricted-original'));
   await page.getByRole('button', { name: 'Accedi o registrati' }).click();
   const drawer = page.getByRole('dialog', { name: 'Account e archivio GPX' });
   await drawer.getByLabel('Email').fill('mario@example.test');
-  await drawer.getByLabel('Password').fill('password');
+  await drawer.getByLabel('Password', { exact: true }).fill('password');
   await drawer.locator('.account-primary').click();
 
-  await expect(drawer.getByText('È richiesta una nuova accettazione')).toBeVisible();
-  await expect(drawer.getByText('Termini · versione 0.2')).toBeVisible();
-  await expect(drawer.getByText('Privacy · versione 0.3')).toBeVisible();
+  await expect(drawer.getByText(/nuova accettazione/)).toBeVisible();
+  await expect(drawer.locator('.lifecycle-documents summary').nth(0)).toContainText('Termini');
+  await expect(drawer.locator('.lifecycle-documents summary').nth(1)).toContainText('Privacy');
   await expect(drawer.getByText(/restano disponibili anche con account sospeso/)).toBeVisible();
   await expect(drawer.getByRole('button', { name: 'Richiedi export' })).toBeVisible();
   expect(privateArchiveRequests).toBe(0);

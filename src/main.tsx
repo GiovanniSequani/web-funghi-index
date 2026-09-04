@@ -10,6 +10,8 @@ import { consumeMobileConfirmCallback } from './account/mobileAuthBridge';
 import { LegalDocumentPage } from './legal/LegalDocument';
 import AccountDeletionPage from './account/AccountDeletionPage';
 import { consumeDeletionToken } from './account/deletionToken';
+import { MarketingSite } from './site/MarketingSite';
+import { resolvePublicPage } from './site/routes';
 
 const deletionTokenCallback = consumeDeletionToken(
   window.location.pathname,
@@ -36,6 +38,14 @@ const legalDocumentKind = normalizedPath === '/termini'
     : normalizedPath === '/account-e-dati'
       ? 'account'
       : null;
+const publicPage = resolvePublicPage(window.location.pathname);
+const publicPageTitles = {
+  home: 'Funghi Tracker | Indice, meteo e percorsi',
+  map: 'Mappa | Funghi Tracker',
+  method: 'Come funziona | Funghi Tracker',
+  archive: 'Archivio | Funghi Tracker',
+} as const;
+if (publicPage !== 'unknown') document.title = publicPageTitles[publicPage];
 const content = normalizedPath === '/elimina-account'
   ? <AccountDeletionPage callback={deletionTokenCallback} />
   : mobileConfirmCallback
@@ -44,7 +54,9 @@ const content = normalizedPath === '/elimina-account'
     ? <AuthCallbackPage mode={authCallbackMode} />
     : legalDocumentKind
       ? <LegalDocumentPage kind={legalDocumentKind} />
-      : <App />;
+      : publicPage === 'map'
+        ? <App />
+        : <MarketingSite page={publicPage === 'method' || publicPage === 'archive' ? publicPage : 'home'} />;
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

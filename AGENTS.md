@@ -19,14 +19,18 @@ inside `D:\FunghiTracker\web-funghi-index`.
 The site is a static React 19 + TypeScript application built by Vite.
 
 - `index.html` provides `#root` and loads `src/main.tsx`.
-- `src/main.tsx` mounts the single `App` component and global CSS.
-- `src/App.tsx` owns the MapLibre map, controls, geolocation, tile selection,
+- `src/main.tsx` dispatches the pathname to public pages, legal/auth callbacks, or the map application and loads global CSS.
+- `src/App.tsx`, served at `/mappa/`, owns the MapLibre map, controls, geolocation, tile selection,
   calendar, opacity, legend, and coordinate popup.
 - `src/mapStyle.ts` defines the Esri satellite and place-label raster sources.
 - `src/supabaseTiles.ts` is the only tile-discovery and tile-URL adapter.
 - `src/types.ts` contains the shared layer, species, tile-set, and location
   types.
 - `src/styles.css` contains the base responsive UI styling.
+- `src/site/` contains the manual public-route resolver plus the responsive home,
+  product-method, and archive presentation pages. `/` is the home,
+  `/come-funziona/` explains the index, and `/archivio/` presents account
+  features before linking into `/mappa/?account=1`.
 - `src/pointDetails/` contains the weather and terrain clients, grid formulas, decoders, concurrent loading hook, responsive drawer, charts, and their tests.
 - `src/indexData/` contains the public `index-data` Storage client, manifest-driven
   binary decoder, stale-request-safe loading hook, popup summary, responsive
@@ -46,7 +50,7 @@ The site is a static React 19 + TypeScript application built by Vite.
 - `vercel.json` mirrors the security headers for Vercel.
 - `dist/` and `.env*` are generated/local state and are not committed.
 
-There is no client-side router and no server runtime. The browser directly
+There is no router dependency and no server runtime; `src/main.tsx` performs a`nsmall pathname dispatch for the static routes. The browser directly
 contacts public Supabase Storage and Esri tile endpoints.
 
 ## Commands
