@@ -10,6 +10,11 @@ for (const viewport of [
     await expect(page.getByRole('heading', { name: 'Un modello AI per lo studio dei funghi.' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Home', exact: true }).first()).toBeVisible();
     await expect(page.getByRole('figure', { name: 'Esempio dell’indice su una griglia territoriale' })).toBeVisible();
+    await expect(page.locator('.index-grid i')).toHaveCount(176);
+    await expect(page.locator('.index-mini-analysis li.favorable')).toHaveCount(2);
+    await expect(page.locator('.index-mini-analysis li.unfavorable')).toHaveCount(1);
+    await expect(page.locator('.index-mini-analysis li', { hasText: 'Piogge recenti' })).toBeVisible();
+    await expect(page.locator('.index-mini-analysis li', { hasText: 'Rischio di asciugamento' })).toBeVisible();
     await expect(page.locator('.site-brand-icon').first()).toHaveAttribute('src', '/icons/icon-192.png');
     await expect(page.getByText('0–100', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Apri la mappa/ })).toBeVisible();

@@ -22,16 +22,39 @@ function SiteFooter() {
 }
 
 function IndexTerrainPreview() {
-  const cells = Array.from({ length: 64 }, (_, index) => {
-    const className = index === 37 ? 'selected' : [28, 29, 36, 38, 44, 45].includes(index) ? 'near' : index % 5 === 0 ? 'warm' : '';
-    return <i key={index} className={className} />;
+  const columns = 16;
+  const selectedIndex = (6 * columns) + 10;
+  const cells = Array.from({ length: columns * 11 }, (_, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const localPeak = Math.max(0, 24 - (Math.hypot(column - 10, row - 6) * 4));
+    const score = index === selectedIndex ? 74 : Math.round(8 + (column * 3.5) + (row * 0.7) + localPeak);
+    const band = score < 8 ? 0 : score < 23 ? 15 : score < 38 ? 30 : score < 53 ? 45 : score < 68 ? 60 : score < 83 ? 75 : score < 95 ? 90 : 100;
+    return <i key={index} className={`index-band-${band}${index === selectedIndex ? ' selected' : ''}`} />;
   });
 
   return <figure className="index-terrain-preview" aria-label="Esempio dell’indice su una griglia territoriale">
     <div className="preview-toolbar"><span>Indice porcini</span><time>Oggi</time></div>
-    <svg className="preview-terrain" viewBox="0 0 680 500" aria-hidden="true"><path className="terrain-base" d="M0 460V210l92-51 73 31 87-98 99 78 90-61 104 95 135-46v302Z" /><path className="terrain-light" d="m0 354 106-86 80 36 74-75 92 43 88-83 103 80 137-55v246H0Z" /><path className="terrain-shadow" d="m0 423 119-92 94 47 85-63 85 40 92-78 94 64 111-46v165H0Z" /><g className="terrain-contours"><path d="M-14 344c77-45 138-27 213-70s117-104 208-75 117 62 282-14" /><path d="M-24 394c85-49 165-15 241-65s111-102 205-72 148 59 277-24" /><path d="M-12 448c101-58 169-11 254-75s112-90 202-55 136 31 246-26" /></g></svg>
+    <svg className="preview-terrain" viewBox="0 0 760 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="terrain-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c7d3c3" /><stop offset="1" stopColor="#879b86" /></linearGradient>
+        <linearGradient id="terrain-main" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#78906c" /><stop offset=".52" stopColor="#496b4e" /><stop offset="1" stopColor="#25452f" /></linearGradient>
+      </defs>
+      <rect className="terrain-sky" width="760" height="520" fill="url(#terrain-sky)" />
+      <path className="terrain-ridge-far" d="M0 312 75 270l65 17 92-93 58 37 79-111 75 76 54-34 85 98 84-46 93 48v258H0Z" />
+      <path className="terrain-ridge-main" d="M0 383 91 312l65 21 102-131 65 76 68-105 66 112 68-60 87 107 82-59 126 62v185H0Z" fill="url(#terrain-main)" />
+      <path className="terrain-sun-face" d="m91 312 65 21 102-131 65 76-57 35-88 74Z" />
+      <path className="terrain-shadow-face" d="m258 202 65 76 68-105 12 133-80 56-57-49Z" />
+      <path className="terrain-shadow-face second" d="m457 285 68-60 87 107-42 25-78 42Z" />
+      <path className="terrain-foreground" d="M0 424c113-77 188-49 275-82 91-35 170-26 242 17 84 50 143 22 243-12v173H0Z" />
+      <g className="terrain-contours"><path d="M-18 362c91-53 145-22 232-70s114-103 206-69 141 70 355-26" /><path d="M-23 414c110-57 174-12 266-71s116-93 210-52 150 41 326-32" /><path d="M-12 470c107-48 188-3 281-61s126-81 217-43 151 31 292-21" /></g>
+      <g className="terrain-forest"><path d="m72 399 13-34 13 34Z" /><path d="m105 386 11-30 11 30Z" /><path d="m641 382 13-36 13 36Z" /><path d="m675 395 12-32 12 32Z" /><path d="m704 374 10-28 10 28Z" /></g>
+    </svg>
     <div className="index-grid" aria-hidden="true">{cells}</div>
-    <div className="index-value-card"><small>Cella selezionata</small><div><strong>74</strong><span>/100</span></div><p>Condizioni favorevoli</p></div>
+    <div className="index-value-card">
+      <div className="index-score"><small>Cella selezionata</small><div><strong>74</strong><span>/100</span></div><p>Condizioni favorevoli</p></div>
+      <div className="index-mini-analysis"><strong>Analisi del punto</strong><ul><li className="favorable"><span>+</span><p>Piogge recenti<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Umidità del bosco<small>favorevole</small></p></li><li className="unfavorable"><span>−</span><p>Rischio di asciugamento<small>sfavorevole</small></p></li></ul></div>
+    </div>
   </figure>;
 }
 
