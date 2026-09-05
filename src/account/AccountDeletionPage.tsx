@@ -78,7 +78,7 @@ export default function AccountDeletionPage(props: {
   return (
     <main className="legal-page account-deletion-page">
       <nav aria-label="Navigazione account">
-        <a href="/"><ArrowLeft size={15} aria-hidden="true" /> Mappa</a>
+        <a href="/mappa/"><ArrowLeft size={15} aria-hidden="true" /> Mappa</a>
         <a href="/account-e-dati/">Account e dati</a>
         <a href="/privacy/">Privacy</a>
       </nav>
@@ -121,7 +121,7 @@ export default function AccountDeletionPage(props: {
             <p>L’account è ora in eliminazione. Il backend procederà in modo riprendibile e invaliderà definitivamente l’accesso al termine.</p>
             <p>Gli eventuali residui tecnici vengono rimossi entro 30 giorni. Questa conferma non significa che il job sia già completato.</p>
             {logoutWarning && <p className="account-message warning" role="alert">{logoutWarning}</p>}
-            <a className="public-primary-link" href="/">Torna alla mappa</a>
+            <a className="public-primary-link" href="/mappa/">Torna alla mappa</a>
           </section>
         ) : (
           <section className="public-deletion-card" aria-labelledby="request-deletion-title">

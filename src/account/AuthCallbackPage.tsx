@@ -124,11 +124,11 @@ export default function AuthCallbackPage(props: {
             <p className="auth-callback-message success" role="status">
               {isConfirm ? 'Email confermata. Ora puoi accedere al tuo account.' : 'Password aggiornata. Ora puoi accedere con la nuova password.'}
             </p>
-            <a className="auth-callback-home" href="/">Torna alla mappa</a>
+            <a className="auth-callback-home" href="/mappa/">Torna alla mappa</a>
           </>
         )}
 
-        {(invalid || status === 'error') && <a className="auth-callback-secondary" href="/">Torna alla mappa</a>}
+        {(invalid || status === 'error') && <a className="auth-callback-secondary" href="/mappa/">Torna alla mappa</a>}
       </section>
     </main>
   );

@@ -22,6 +22,7 @@ describe('AccountDeletionPage', () => {
     expect(confirmDeletion).toHaveBeenCalledTimes(1);
     expect(confirmDeletion).toHaveBeenCalledWith(callback.token);
     expect(clearSession).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: 'Torna alla mappa' }).getAttribute('href')).toBe('/mappa/');
   });
 
   it.each(['token scaduto', 'token già usato'])('gestisce %s senza promettere una distinzione che il backend non fornisce', async () => {
@@ -56,5 +57,6 @@ describe('AccountDeletionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invia richiesta' }));
     expect((await screen.findByRole('status')).textContent).toContain('Se la richiesta può essere elaborata');
     expect(requestDeletion).toHaveBeenCalledWith('unknown@example.test');
+    expect(screen.getByRole('link', { name: 'Mappa' }).getAttribute('href')).toBe('/mappa/');
   });
 });

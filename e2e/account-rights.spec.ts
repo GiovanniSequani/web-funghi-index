@@ -10,6 +10,7 @@ for (const viewport of [
       route.fulfill({ contentType: 'application/json', body: JSON.stringify({ accepted: true }) }),
     );
     await page.goto('/elimina-account/');
+    await expect(page.getByRole('link', { name: 'Mappa' })).toHaveAttribute('href', '/mappa/');
     await page.getByLabel('Email account').fill('utente@example.test');
     await page.getByRole('button', { name: 'Invia richiesta' }).click();
     await expect(page.getByRole('status')).toContainText('Se la richiesta può essere elaborata');
@@ -37,6 +38,7 @@ test('callback: fragment rimosso, conferma esplicita e token inviato una sola vo
   await page.getByRole('button', { name: 'Conferma eliminazione definitiva' }).click();
   await expect(page.getByText('Richiesta confermata')).toBeVisible();
   expect(calls).toBe(1);
+  await expect(page.getByRole('link', { name: 'Torna alla mappa' })).toHaveAttribute('href', '/mappa/');
 });
 
 for (const scenario of ['token scaduto', 'token già usato']) {

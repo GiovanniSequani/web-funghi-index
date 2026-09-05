@@ -21,6 +21,7 @@ describe('AuthCallbackPage', () => {
     await waitFor(() => expect(verify).toHaveBeenCalledTimes(1));
     expect(window.location.search).toBe('');
     expect(await screen.findByText(/Email confermata/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Torna alla mappa' }).getAttribute('href')).toBe('/mappa/');
   });
 
   it('mostra un errore comprensibile per un token già usato', async () => {
@@ -31,6 +32,7 @@ describe('AuthCallbackPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Conferma email' }));
 
     expect(await screen.findByText(/già stato usato oppure è scaduto/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Torna alla mappa' }).getAttribute('href')).toBe('/mappa/');
   });
 
   it('in recovery verifica al click e salva la nuova password', async () => {
@@ -47,5 +49,6 @@ describe('AuthCallbackPage', () => {
 
     await waitFor(() => expect(updatePassword).toHaveBeenCalledWith('password-nuova'));
     expect(await screen.findByText(/Password aggiornata/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Torna alla mappa' }).getAttribute('href')).toBe('/mappa/');
   });
 });
