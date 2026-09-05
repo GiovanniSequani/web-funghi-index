@@ -119,6 +119,43 @@
   stroke:#397048;
   stroke-width:.65;
 }
+.index-cell-callout {
+  display:none;
+}
+.index-value-card {
+  isolation:isolate;
+}
+.index-value-card::before {
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:0;
+  top:2px;
+  width:165px;
+  height:2px;
+  transform:rotate(-31deg);
+  transform-origin:left center;
+  background:repeating-linear-gradient(90deg,#397048 0 6px,transparent 6px 10px);
+  opacity:.85;
+  pointer-events:none;
+}
+.index-value-card::after {
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:140px;
+  top:-94px;
+  width:8px;
+  height:8px;
+  border:2px solid #397048;
+  border-radius:50%;
+  background:#f4f6f0;
+  pointer-events:none;
+}
+.index-value-card > * {
+  position:relative;
+  z-index:1;
+}
 .preview-toolbar {
   top:18px;
   right:20px;
@@ -173,6 +210,15 @@
     bottom:10px;
     width:min(252px,calc(100% - 20px));
     padding:12px 13px 11px;
+  }
+  .index-value-card::before {
+    width:178px;
+    top:2px;
+    transform:rotate(-48deg);
+  }
+  .index-value-card::after {
+    left:128px;
+    top:-132px;
   }
   .index-analysis-summary {
     display:none;
