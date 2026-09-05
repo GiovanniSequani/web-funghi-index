@@ -73,3 +73,86 @@
   .index-mini-analysis { padding-top:8px; }
   .index-mini-analysis ul { gap:4px; }
 }
+
+/* Hero render: Blender terrain with a native, responsive data summary. */
+.index-terrain-preview {
+  min-height:560px;
+  overflow:hidden;
+  border:1px solid #aab9aa;
+  border-radius:10px;
+  background:#dfe7db;
+  box-shadow:0 24px 58px #183b261f;
+}
+.preview-terrain,
+.index-grid {
+  display:none;
+}
+.index-terrain-render {
+  position:absolute;
+  z-index:1;
+  inset:6px -7% auto;
+  width:114%;
+  height:auto;
+  aspect-ratio:16 / 9;
+  object-fit:contain;
+  user-select:none;
+}
+.preview-toolbar {
+  top:18px;
+  right:20px;
+  left:20px;
+  color:#294b34;
+  text-shadow:none;
+}
+.preview-toolbar time {
+  color:#657768;
+}
+.index-value-card {
+  right:20px;
+  bottom:20px;
+  width:282px;
+  padding:17px 18px 15px;
+  border:1px solid #b7c4b5;
+  border-top:3px solid var(--site-moss);
+  border-left:1px solid #b7c4b5;
+  border-radius:4px;
+  background:#f4f6f0f2;
+  box-shadow:0 14px 34px #11271a30;
+}
+.index-analysis-summary {
+  margin:0 0 10px;
+  color:#52675a;
+  font-size:10px;
+  line-height:1.45;
+}
+
+@media(max-width:900px) {
+  .index-terrain-preview {
+    min-height:540px;
+  }
+}
+
+@media(max-width:620px) {
+  .index-terrain-preview {
+    min-height:430px;
+    border-radius:7px;
+  }
+  .index-terrain-render {
+    inset:22px -15% auto;
+    width:130%;
+  }
+  .preview-toolbar {
+    top:14px;
+    right:14px;
+    left:14px;
+  }
+  .index-value-card {
+    right:10px;
+    bottom:10px;
+    width:min(252px,calc(100% - 20px));
+    padding:12px 13px 11px;
+  }
+  .index-analysis-summary {
+    display:none;
+  }
+}

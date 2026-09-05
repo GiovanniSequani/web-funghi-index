@@ -22,19 +22,9 @@ function SiteFooter() {
 }
 
 function IndexTerrainPreview() {
-  const columns = 16;
-  const selectedIndex = (6 * columns) + 10;
-  const cells = Array.from({ length: columns * 11 }, (_, index) => {
-    const row = Math.floor(index / columns);
-    const column = index % columns;
-    const localPeak = Math.max(0, 24 - (Math.hypot(column - 10, row - 6) * 4));
-    const score = index === selectedIndex ? 74 : Math.round(8 + (column * 3.5) + (row * 0.7) + localPeak);
-    const band = score < 8 ? 0 : score < 23 ? 15 : score < 38 ? 30 : score < 53 ? 45 : score < 68 ? 60 : score < 83 ? 75 : score < 95 ? 90 : 100;
-    return <i key={index} className={`index-band-${band}${index === selectedIndex ? ' selected' : ''}`} />;
-  });
-
   return <figure className="index-terrain-preview" aria-label="Esempio dell’indice su una griglia territoriale">
     <div className="preview-toolbar"><span>Indice porcini</span><time>Oggi</time></div>
+    <img className="index-terrain-render" src="/media/funghitracker-index-terrain.png" width="1920" height="1080" alt="Modello tridimensionale della griglia indice" />
     <svg className="preview-terrain" viewBox="0 0 760 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <linearGradient id="terrain-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c7d3c3" /><stop offset="1" stopColor="#879b86" /></linearGradient>
@@ -50,10 +40,9 @@ function IndexTerrainPreview() {
       <g className="terrain-contours"><path d="M-18 362c91-53 145-22 232-70s114-103 206-69 141 70 355-26" /><path d="M-23 414c110-57 174-12 266-71s116-93 210-52 150 41 326-32" /><path d="M-12 470c107-48 188-3 281-61s126-81 217-43 151 31 292-21" /></g>
       <g className="terrain-forest"><path d="m72 399 13-34 13 34Z" /><path d="m105 386 11-30 11 30Z" /><path d="m641 382 13-36 13 36Z" /><path d="m675 395 12-32 12 32Z" /><path d="m704 374 10-28 10 28Z" /></g>
     </svg>
-    <div className="index-grid" aria-hidden="true">{cells}</div>
     <div className="index-value-card">
-      <div className="index-score"><small>Cella selezionata</small><div><strong>74</strong><span>/100</span></div><p>Condizioni favorevoli</p></div>
-      <div className="index-mini-analysis"><strong>Analisi del punto</strong><ul><li className="favorable"><span>+</span><p>Piogge recenti<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Umidità del bosco<small>favorevole</small></p></li><li className="unfavorable"><span>−</span><p>Rischio di asciugamento<small>sfavorevole</small></p></li></ul></div>
+      <div className="index-score"><small>Cella selezionata</small><div><strong>77</strong><span>/100</span></div><p>Condizioni favorevoli</p></div>
+      <div className="index-mini-analysis"><strong>Analisi del punto</strong><p className="index-analysis-summary">Pioggia e temperature sostengono l’indice. L’esposizione aumenta l’asciugamento.</p><ul><li className="favorable"><span>+</span><p>Piogge recenti<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Temperature<small>favorevole</small></p></li><li className="unfavorable"><span>−</span><p>Asciugamento<small>sfavorevole</small></p></li></ul></div>
     </div>
   </figure>;
 }
