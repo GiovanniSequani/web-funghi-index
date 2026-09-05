@@ -25,6 +25,7 @@ function IndexTerrainPreview() {
   return <figure className="index-terrain-preview" aria-label="Esempio dell’indice su una griglia territoriale">
     <div className="preview-toolbar"><span>Indice porcini</span><time>Oggi</time></div>
     <img className="index-terrain-render" src="/media/funghitracker-index-terrain.png" width="1920" height="1080" alt="Modello tridimensionale della griglia indice" />
+    <svg className="index-cell-callout" viewBox="0 0 100 100" aria-hidden="true"><path d="M88 25 L63 52" /><circle cx="88" cy="25" r="1.5" /></svg>
     <svg className="preview-terrain" viewBox="0 0 760 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <linearGradient id="terrain-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c7d3c3" /><stop offset="1" stopColor="#879b86" /></linearGradient>
