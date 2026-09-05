@@ -156,6 +156,17 @@
   position:relative;
   z-index:1;
 }
+.index-cell-callout {
+  display:block;
+  z-index:5;
+}
+.index-cell-callout path {
+  vector-effect:non-scaling-stroke;
+}
+.index-value-card::before,
+.index-value-card::after {
+  display:none;
+}
 .preview-toolbar {
   top:18px;
   right:20px;
