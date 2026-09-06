@@ -52,8 +52,8 @@ describe('account Supabase client', () => {
       lifecycleConfig: {
         api_available: true,
         lifecycle_enabled: true,
-        current_terms_version: '0.2',
-        current_privacy_version: '0.3',
+        current_terms_version: '1.0',
+        current_privacy_version: '1.0',
         reaccept_days: 30,
       },
     }, supabase);
@@ -65,8 +65,8 @@ describe('account Supabase client', () => {
           username: 'mario_rossi',
           terms_accepted: true,
           privacy_acknowledged: true,
-          terms_version: '0.2',
-          privacy_version: '0.3',
+          terms_version: '1.0',
+          privacy_version: '1.0',
           terms_acceptance_source: 'web',
         },
       },

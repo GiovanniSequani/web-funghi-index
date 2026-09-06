@@ -14,7 +14,7 @@ describe('documenti legali pubblici', () => {
 
   it('espone la versione esatta e la navigazione pubblica', () => {
     render(<LegalDocumentPage kind="terms" />);
-    expect(screen.getByText('Versione 0.2')).toBeTruthy();
+    expect(screen.getByText('Versione 1.0 · 6 settembre 2026')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/');
     expect(screen.getByRole('link', { name: 'Privacy' }).getAttribute('href')).toBe('/privacy/');
     expect(screen.getByRole('link', { name: 'Elimina account' }).getAttribute('href')).toBe('/elimina-account/');
@@ -23,12 +23,12 @@ describe('documenti legali pubblici', () => {
 
   it('pubblica anche la pagina operativa Account e dati', () => {
     render(<LegalDocumentPage kind="account" />);
-    expect(screen.getByText('Versione 0.2')).toBeTruthy();
+    expect(screen.getByText('Versione 1.0 · 6 settembre 2026')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Account e dati FunghiTracker' })).toBeTruthy();
   });
 
   it('blocca la riaccettazione se le versioni non coincidono', () => {
-    expect(bundledDocumentsMatch('0.2', '0.3')).toBe(true);
-    expect(bundledDocumentsMatch('0.2', '0.4')).toBe(false);
+    expect(bundledDocumentsMatch('1.0', '1.0')).toBe(true);
+    expect(bundledDocumentsMatch('1.0', '0.4')).toBe(false);
   });
 });

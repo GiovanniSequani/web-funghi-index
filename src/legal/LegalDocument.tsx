@@ -5,31 +5,35 @@ import termsMarkdown from './documents/terms-of-use.md?raw';
 import './legal.css';
 import { LegalNavigation } from './LegalNavigation';
 
-export const BUNDLED_TERMS_VERSION = '0.2';
-export const BUNDLED_PRIVACY_VERSION = '0.3';
+export const BUNDLED_TERMS_VERSION = '1.0';
+export const BUNDLED_PRIVACY_VERSION = '1.0';
 
 export type LegalDocumentKind = 'terms' | 'privacy' | 'account';
 
 export const LEGAL_DOCUMENTS: Record<LegalDocumentKind, {
   title: string;
   version: string;
+  publishedAt?: string;
   path: '/termini/' | '/privacy/' | '/account-e-dati/';
   markdown: string;
 }> = {
   terms: {
     title: 'Termini di utilizzo',
     version: BUNDLED_TERMS_VERSION,
+    publishedAt: '6 settembre 2026',
     path: '/termini/',
     markdown: termsMarkdown,
   },
   privacy: {
     title: 'Informativa privacy',
     version: BUNDLED_PRIVACY_VERSION,
+    publishedAt: '6 settembre 2026',
     path: '/privacy/',
     markdown: privacyMarkdown,
   },  account: {
     title: 'Account e dati',
-    version: '0.2',
+    version: '1.0',
+    publishedAt: '6 settembre 2026',
     path: '/account-e-dati/',
     markdown: accountAndDataMarkdown,
   },
@@ -156,7 +160,7 @@ export function LegalDocumentPage(props: { kind: LegalDocumentKind }) {
       <LegalNavigation current={props.kind} />
       <div className="legal-page-heading">
         <p>Funghi Tracker</p>
-        <span>Versione {document.version}</span>
+        <span>Versione {document.version}{document.publishedAt ? ` · ${document.publishedAt}` : ''}</span>
       </div>
       <LegalDocument kind={props.kind} />
     </main>

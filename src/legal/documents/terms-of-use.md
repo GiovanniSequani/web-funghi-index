@@ -1,6 +1,6 @@
 # Termini di utilizzo di FunghiTracker
 
-**Bozza 0.2 - 30 agosto 2026 - non ancora efficace**
+**Versione 1.0 - 6 settembre 2026**
 
 ## 1. Chi gestisce il servizio
 

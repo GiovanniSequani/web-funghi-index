@@ -1,6 +1,6 @@
 # Informativa privacy di FunghiTracker
 
-**Bozza 0.3 - 31 agosto 2026 - non ancora efficace**
+**Versione 1.0 - 6 settembre 2026**
 
 Questa informativa spiega come vengono trattati i dati personali nell'app e nel
 sito FunghiTracker, destinati inizialmente agli utenti in Italia.

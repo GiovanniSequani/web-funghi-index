@@ -43,10 +43,9 @@ raw-GPX research consent as an access condition.
 
 ## Legal documents
 
-Bundled versions are Terms 0.2 and Privacy 0.3, copied from the current
-authoritative product documents. Their draft/not-effective banners remain
-visible. Acceptance is disabled if the versions requested by the backend do
-not exactly match the bundled versions.
+Bundled versions are Terms 1.0 and Privacy 1.0, published on 6 September
+2026. Acceptance is disabled if the versions requested by the backend do not
+exactly match the bundled versions.
 
 Cloudflare serves /termini and /privacy through its native SPA fallback. The build intentionally contains no top-level 404.html and no _redirects rules that rewrite to /index.html, because that target is canonicalized to / and would discard the client route before React starts.
 

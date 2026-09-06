@@ -1,6 +1,6 @@
 # Account e dati FunghiTracker
 
-**Bozza 0.2 - 30 agosto 2026 - non ancora efficace**
+**Versione 1.0 - 6 settembre 2026**
 
 Questa pagina riassume le funzioni dell'account e come esportare o eliminare i
 tuoi dati.

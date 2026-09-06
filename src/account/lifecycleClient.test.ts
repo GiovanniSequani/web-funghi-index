@@ -17,8 +17,8 @@ import {
 const enabledConfig: AccountLifecyclePublicConfig = {
   api_available: true,
   lifecycle_enabled: true,
-  current_terms_version: '0.2',
-  current_privacy_version: '0.3',
+  current_terms_version: '1.0',
+  current_privacy_version: '1.0',
   reaccept_days: 30,
 };
 
@@ -27,8 +27,8 @@ const restrictedAccess: AccountAccess = {
   restriction_reason: 'terms_outdated',
   terms_version: '0.1',
   privacy_version: '0.2',
-  current_terms_version: '0.2',
-  current_privacy_version: '0.3',
+  current_terms_version: '1.0',
+  current_privacy_version: '1.0',
   legal_notice_first_seen_at: null,
   legal_notice_privacy_version: null,
   legal_reaccept_deadline_at: '2026-10-01T00:00:00Z',
@@ -59,12 +59,12 @@ describe('account lifecycle contract', () => {
     const rpc = vi.fn().mockResolvedValue({ data: restrictedAccess, error: null });
     const supabase = { rpc } as unknown as SupabaseClient;
 
-    await recordMyLegalNoticeSeen('0.2', '0.3', supabase);
-    await acceptCurrentContributorTerms('0.2', '0.3', supabase);
-    await refuseCurrentContributorTerms('0.2', '0.3', supabase);
+    await recordMyLegalNoticeSeen('1.0', '1.0', supabase);
+    await acceptCurrentContributorTerms('1.0', '1.0', supabase);
+    await refuseCurrentContributorTerms('1.0', '1.0', supabase);
     await recordMyMeaningfulActivity('account_action', supabase);
 
-    const legalArgs = { p_terms_version: '0.2', p_privacy_version: '0.3', p_source: 'web' };
+    const legalArgs = { p_terms_version: '1.0', p_privacy_version: '1.0', p_source: 'web' };
     expect(rpc).toHaveBeenNthCalledWith(1, 'record_my_legal_notice_seen', legalArgs);
     expect(rpc).toHaveBeenNthCalledWith(2, 'accept_current_contributor_terms', legalArgs);
     expect(rpc).toHaveBeenNthCalledWith(3, 'refuse_current_contributor_terms', legalArgs);

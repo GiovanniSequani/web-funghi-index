@@ -12,8 +12,8 @@ vi.mock('./AccountRightsPanel', () => ({
 const config: AccountLifecyclePublicConfig = {
   api_available: true,
   lifecycle_enabled: true,
-  current_terms_version: '0.2',
-  current_privacy_version: '0.3',
+  current_terms_version: '1.0',
+  current_privacy_version: '1.0',
   reaccept_days: 30,
 };
 
@@ -22,8 +22,8 @@ const access: AccountAccess = {
   restriction_reason: 'terms_outdated',
   terms_version: '0.1',
   privacy_version: '0.2',
-  current_terms_version: '0.2',
-  current_privacy_version: '0.3',
+  current_terms_version: '1.0',
+  current_privacy_version: '1.0',
   legal_notice_first_seen_at: null,
   legal_notice_privacy_version: null,
   legal_reaccept_deadline_at: null,
