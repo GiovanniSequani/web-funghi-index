@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, CheckCircle2, Mail, ShieldAlert, Trash2 } from 'lucide-react';
+import { CheckCircle2, Mail, ShieldAlert, Trash2 } from 'lucide-react';
 import type { DeletionTokenCallback } from './deletionToken';
 import {
   confirmAccountDeletion,
@@ -7,6 +7,7 @@ import {
 } from './rightsClient';
 import { getAccountSupabaseClient } from './client';
 import { toAccountError } from './validation';
+import { LegalNavigation } from '../legal/LegalNavigation';
 import '../legal/legal.css';
 import './account.css';
 
@@ -77,11 +78,7 @@ export default function AccountDeletionPage(props: {
 
   return (
     <main className="legal-page account-deletion-page">
-      <nav aria-label="Navigazione account">
-        <a href="/mappa/"><ArrowLeft size={15} aria-hidden="true" /> Mappa</a>
-        <a href="/account-e-dati/">Account e dati</a>
-        <a href="/privacy/">Privacy</a>
-      </nav>
+      <LegalNavigation current="deletion" />
 
       <div className="deletion-page-shell">
         <div className="legal-page-heading">

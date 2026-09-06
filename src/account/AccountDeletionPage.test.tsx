@@ -57,6 +57,8 @@ describe('AccountDeletionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invia richiesta' }));
     expect((await screen.findByRole('status')).textContent).toContain('Se la richiesta può essere elaborata');
     expect(requestDeletion).toHaveBeenCalledWith('unknown@example.test');
-    expect(screen.getByRole('link', { name: 'Mappa' }).getAttribute('href')).toBe('/mappa/');
+    expect(screen.getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/');
+    expect(screen.getByRole('link', { name: 'Termini' }).getAttribute('href')).toBe('/termini/');
+    expect(screen.getByRole('link', { name: 'Elimina account' }).getAttribute('aria-current')).toBe('page');
   });
 });

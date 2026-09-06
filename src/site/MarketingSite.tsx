@@ -24,7 +24,7 @@ function SiteFooter() {
 function IndexTerrainPreview() {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const [callout, setCallout] = useState<{ width: number; height: number; cellX: number; cellY: number; anchorX: number; anchorY: number } | null>(null);
+  const [callout, setCallout] = useState<{ width: number; height: number; cellX: number; cellY: number; anchorX: number; rightAnchorX: number; anchorY: number } | null>(null);
 
   useLayoutEffect(() => {
     const measureCallout = () => {
@@ -38,9 +38,10 @@ function IndexTerrainPreview() {
       setCallout({
         width: figureRect.width,
         height: figureRect.height,
-        cellX: imageRect.left - figureRect.left + imageRect.width * 0.7372,
-        cellY: imageRect.top - figureRect.top + imageRect.height * 0.2233,
+        cellX: imageRect.left - figureRect.left + imageRect.width * 0.7212,
+        cellY: imageRect.top - figureRect.top + imageRect.height * 0.2545,
         anchorX: cardRect.left - figureRect.left + 1,
+        rightAnchorX: cardRect.right - figureRect.left - 1,
         anchorY: cardRect.top - figureRect.top + 1,
       });
     };
@@ -62,7 +63,7 @@ function IndexTerrainPreview() {
     };
   }, []);
   return <figure className="index-terrain-preview" aria-label="Esempio dell’indice su una griglia territoriale">
-    <div className="preview-toolbar"><span>Indice porcini</span><time>Oggi</time></div>
+    <div className="preview-toolbar"><span>Indice porcini</span></div>
     <img ref={imageRef} className="index-terrain-render" src="/media/funghitracker-index-terrain.png" width="1920" height="1080" alt="Modello tridimensionale della griglia indice" />
     <svg className="index-cell-callout" viewBox={callout ? `0 0 ${callout.width} ${callout.height}` : '0 0 100 100'} aria-hidden="true">{callout && <><path d={`M ${callout.cellX} ${callout.cellY} L ${callout.anchorX} ${callout.anchorY}`} /><circle cx={callout.cellX} cy={callout.cellY} r={5} /></>}</svg>
     <svg className="preview-terrain" viewBox="0 0 760 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -80,9 +81,10 @@ function IndexTerrainPreview() {
       <g className="terrain-contours"><path d="M-18 362c91-53 145-22 232-70s114-103 206-69 141 70 355-26" /><path d="M-23 414c110-57 174-12 266-71s116-93 210-52 150 41 326-32" /><path d="M-12 470c107-48 188-3 281-61s126-81 217-43 151 31 292-21" /></g>
       <g className="terrain-forest"><path d="m72 399 13-34 13 34Z" /><path d="m105 386 11-30 11 30Z" /><path d="m641 382 13-36 13 36Z" /><path d="m675 395 12-32 12 32Z" /><path d="m704 374 10-28 10 28Z" /></g>
     </svg>
+    {callout && <svg className='index-cell-callout' viewBox={`0 0 ${callout.width} ${callout.height}`} aria-hidden='true'><path d={`M ${callout.cellX} ${callout.cellY} L ${callout.rightAnchorX} ${callout.anchorY}`} /></svg>}
     <div ref={cardRef} className="index-value-card">
       <div className="index-score"><small>Cella selezionata</small><div><strong>77</strong><span>/100</span></div><p>Condizioni favorevoli</p></div>
-      <div className="index-mini-analysis"><strong>Analisi del punto</strong><p className="index-analysis-summary">Pioggia e temperature sostengono l’indice. L’esposizione aumenta l’asciugamento.</p><ul><li className="favorable"><span>+</span><p>Piogge recenti<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Temperature<small>favorevole</small></p></li><li className="unfavorable"><span>−</span><p>Asciugamento<small>sfavorevole</small></p></li></ul></div>
+      <div className="index-mini-analysis"><strong>Analisi del punto</strong><p className="index-analysis-summary">Pioggia, temperature e habitat sostengono l’indice. L’esposizione aumenta l’asciugamento.</p><ul><li className="favorable"><span>+</span><p>Piogge recenti<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Temperature<small>favorevole</small></p></li><li className="favorable"><span>+</span><p>Habitat<small>favorevole</small></p></li><li className="unfavorable"><span>−</span><p>Asciugamento<small>sfavorevole</small></p></li></ul></div>
     </div>
   </figure>;
 }

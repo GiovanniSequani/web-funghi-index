@@ -15,7 +15,10 @@ describe('documenti legali pubblici', () => {
   it('espone la versione esatta e la navigazione pubblica', () => {
     render(<LegalDocumentPage kind="terms" />);
     expect(screen.getByText('Versione 0.2')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/');
     expect(screen.getByRole('link', { name: 'Privacy' }).getAttribute('href')).toBe('/privacy/');
+    expect(screen.getByRole('link', { name: 'Elimina account' }).getAttribute('href')).toBe('/elimina-account/');
+    expect(screen.getByRole('link', { name: 'Termini' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('pubblica anche la pagina operativa Account e dati', () => {
