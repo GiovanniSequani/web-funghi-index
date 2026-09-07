@@ -79,6 +79,11 @@
   margin: 0;
 }
 
+.coordinate-index-access-note {
+  color: #9dad93;
+  font-size: 9.5px;
+}
+
 .coordinate-index-error button {
   flex: 0 0 auto;
   gap: 4px;

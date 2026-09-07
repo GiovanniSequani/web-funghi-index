@@ -235,6 +235,13 @@ select {
   color: #f0aaaa;
 }
 
+.index-access-note {
+  margin: -3px 0 2px;
+  color: #91a28c;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .field-group {
   display: grid;
   gap: 8px;

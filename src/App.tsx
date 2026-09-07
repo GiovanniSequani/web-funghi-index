@@ -11,6 +11,7 @@ import { useAccountSession } from './account/useAccountSession';
 import { useAccountLifecycle } from './account/useAccountLifecycle';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
+import { filterTileSetsForIndexAccess } from './indexAccess';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { BASE_MAP_MAX_ZOOM, PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
 import { installTouchLongPress } from './mapLongPress';
@@ -125,6 +126,10 @@ function App() {
   );
   const accountSession = useAccountSession();
   const accountLifecycle = useAccountLifecycle(accountSession.session, accountSession.loading);
+  const indexAccessReady = !accountSession.loading && !accountLifecycle.loading;
+  const fullIndexAccess = Boolean(accountSession.session && accountLifecycle.fullAccess);
+  const authenticated = Boolean(accountSession.session);
+  const lifecyclePromptKeyRef = React.useRef<string | null>(null);
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
   const [editingTrackId, setEditingTrackId] = React.useState<string | null>(null);
   const [selectedEditPointIndex, setSelectedEditPointIndex] = React.useState<number | null>(null);
@@ -182,6 +187,7 @@ function App() {
   }, [editingTrackId]);
 
   const loadTileSets = React.useCallback(async (signal?: AbortSignal) => {
+    if (!indexAccessReady) return;
     setTilesLoading(true);
     setTilesError(null);
 
@@ -191,8 +197,13 @@ function App() {
         throw new Error('Nessun tileset valido trovato in tiles/');
       }
 
-      const latest = available[0];
-      setTileSets(available);
+      const allowed = filterTileSetsForIndexAccess(available, fullIndexAccess);
+      if (allowed.length === 0) {
+        throw new Error('Nessuna data indice disponibile per il livello di accesso corrente.');
+      }
+
+      const latest = allowed[0];
+      setTileSets(allowed);
       setSelectedDate(latest.date);
       setSelectedVersion(latest.version);
       setCalendarMonth(parseTileDate(latest.date) ?? new Date());
@@ -205,13 +216,29 @@ function App() {
     } finally {
       if (!signal?.aborted) setTilesLoading(false);
     }
-  }, []);
+  }, [fullIndexAccess, indexAccessReady]);
 
   React.useEffect(() => {
     const controller = new AbortController();
-    void loadTileSets(controller.signal);
+    if (indexAccessReady) void loadTileSets(controller.signal);
     return () => controller.abort();
-  }, [loadTileSets]);
+  }, [indexAccessReady, loadTileSets]);
+
+  React.useEffect(() => {
+    const access = accountLifecycle.access;
+    if (!accountSession.session || !access || accountLifecycle.fullAccess) {
+      lifecyclePromptKeyRef.current = null;
+      return;
+    }
+    const key = accountSession.session.user.id + ':' + access.account_state + ':' + String(access.restriction_reason);
+    if (lifecyclePromptKeyRef.current === key) return;
+    lifecyclePromptKeyRef.current = key;
+    setAccountArchiveOpen(true);
+  }, [accountLifecycle.access, accountLifecycle.fullAccess, accountSession.session]);
+
+  React.useEffect(() => {
+    if (!fullIndexAccess) setAnalysisPoint(null);
+  }, [fullIndexAccess]);
 
   React.useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -309,10 +336,17 @@ function App() {
           setDetailsPoint(selectedMapPoint);
         }}
         onShowAnalysis={() => {
+          if (!fullIndexAccess) {
+            setAccountArchiveOpen(true);
+            return;
+          }
           setAccountArchiveOpen(false);
           setDetailsPoint(null);
           setAnalysisPoint(selectedMapPoint);
         }}
+        onShowAccount={() => setAccountArchiveOpen(true)}
+        fullIndexAccess={fullIndexAccess}
+        authenticated={authenticated}
       />,
     );
 
@@ -326,7 +360,7 @@ function App() {
       root.unmount();
       popup.remove();
     };
-  }, [mapReady, selectedMapPoint]);
+  }, [authenticated, fullIndexAccess, mapReady, selectedMapPoint]);
 
   React.useEffect(() => {
     const map = mapRef.current;
@@ -801,6 +835,9 @@ function App() {
               ? 'Errore lettura archivio date'
               : `${availableDates.length} date in archivio`}
         </div>
+        {!fullIndexAccess && !tilesLoading && !tilesError && (
+          <p className="index-access-note">Indice pubblico con 7 giorni di ritardo.</p>
+        )}
         {tilesError && <p className="error-text">{tilesError}</p>}
 
         <div className="field-group">
@@ -826,7 +863,7 @@ function App() {
       {detailsPoint && (
         <PointDetailsDrawer point={detailsPoint} onClose={() => setDetailsPoint(null)} />
       )}
-      {analysisPoint && (
+      {analysisPoint && fullIndexAccess && (
         <IndexAnalysisDrawer
           point={analysisPoint}
           initialSpecies={activeLayer === 'finferli' ? 'finferli' : 'porcini'}

@@ -2,6 +2,8 @@ import React from 'react';
 import { Activity, Check, Copy, PanelRightOpen, RefreshCw, X } from 'lucide-react';
 import { formatLongDate } from '../pointDetails/formatters';
 import type { MapPoint } from '../pointDetails/types';
+import { selectLimitedIndexDay } from '../indexAccess';
+import { useIndexHistory } from './useIndexHistory';
 import { useIndexPoint } from './useIndexPoint';
 import './popup.css';
 
@@ -19,9 +21,27 @@ export function IndexPopupContent(props: {
   onClose: () => void;
   onShowData: () => void;
   onShowAnalysis: () => void;
+  onShowAccount: () => void;
+  fullIndexAccess: boolean;
+  authenticated: boolean;
 }) {
-  const { point, onClose, onShowData, onShowAnalysis } = props;
-  const { state, retry } = useIndexPoint(point, true);
+  const { point, onClose, onShowData, onShowAnalysis, onShowAccount } = props;
+  const current = useIndexPoint(point, props.fullIndexAccess);
+  const history = useIndexHistory(point, !props.fullIndexAccess);
+  const limitedDay = history.state.status === 'success' && history.state.data
+    ? selectLimitedIndexDay(history.state.data)
+    : null;
+  const state = props.fullIndexAccess ? current.state : history.state;
+  const retry = props.fullIndexAccess ? current.retry : history.retry;
+  const indexDate = props.fullIndexAccess && current.state.status === 'success'
+    ? current.state.data?.indexDate ?? null
+    : limitedDay?.date ?? null;
+  const porciniScore = props.fullIndexAccess && current.state.status === 'success'
+    ? current.state.data?.porciniScore ?? null
+    : limitedDay?.porciniScore ?? null;
+  const finferliScore = props.fullIndexAccess && current.state.status === 'success'
+    ? current.state.data?.finferliScore ?? null
+    : limitedDay?.finferliScore ?? null;
   const [copied, setCopied] = React.useState(false);
   const coordinates = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
 
@@ -52,28 +72,32 @@ export function IndexPopupContent(props: {
 
       <div className="coordinate-index-summary" data-status={state.status} aria-live="polite">
         {(state.status === 'loading' || state.status === 'idle') && (
-          <span>Caricamento indice più recente…</span>
+          <span>Caricamento indice{props.fullIndexAccess ? ' più recente' : ' pubblico'}…</span>
         )}
-        {state.status === 'success' && state.data && (
+        {state.status === 'success' && indexDate && (
           <>
             <div className="coordinate-index-date">
               <span>Indice</span>
-              <strong>{formatLongDate(state.data.indexDate)}</strong>
+              <strong>{formatLongDate(indexDate)}</strong>
             </div>
             <div className="coordinate-index-scores">
               <div>
                 <span>Porcini</span>
-                <strong>{scoreLabel(state.data.porciniScore)}</strong>
+                <strong>{scoreLabel(porciniScore)}</strong>
               </div>
               <div>
                 <span>Finferli</span>
-                <strong>{scoreLabel(state.data.finferliScore)}</strong>
+                <strong>{scoreLabel(finferliScore)}</strong>
               </div>
             </div>
-            {state.data.porciniScore === null && state.data.finferliScore === null && (
+            {!props.fullIndexAccess && <p className="coordinate-index-access-note">Indice pubblico con 7 giorni di ritardo.</p>}
+            {porciniScore === null && finferliScore === null && (
               <p>Nessun valore disponibile per questa cella.</p>
             )}
           </>
+        )}
+        {state.status === 'success' && !indexDate && (
+          <div className="coordinate-index-error"><span>Nessuna data pubblica disponibile nella finestra consentita.</span></div>
         )}
         {!['idle', 'loading', 'success'].includes(state.status) && (
           <div className="coordinate-index-error">
@@ -93,9 +117,13 @@ export function IndexPopupContent(props: {
           <PanelRightOpen size={17} aria-hidden="true" />
           <span>Mostra dati</span>
         </button>
-        <button type="button" className="coordinate-popup-analysis" onClick={onShowAnalysis}>
+        <button
+          type="button"
+          className="coordinate-popup-analysis"
+          onClick={props.fullIndexAccess ? onShowAnalysis : onShowAccount}
+        >
           <Activity size={17} aria-hidden="true" />
-          <span>Analisi indice</span>
+          <span>{props.fullIndexAccess ? 'Analisi indice' : props.authenticated ? 'Gestisci accesso' : 'Accedi per analisi'}</span>
         </button>
       </div>
     </div>
