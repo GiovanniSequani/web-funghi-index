@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ArrowLeft,
+  CalendarDays,
   Cloud,
   CloudDownload,
   FolderArchive,
@@ -14,7 +15,6 @@ import {
   Pencil,
   RefreshCw,
   Scissors,
-  ShieldCheck,
   Trash2,
   Upload,
   UserPlus,
@@ -615,12 +615,12 @@ export function AccountArchiveDrawer(props: {
           <>
             <section className="account-intro">
               <span className="account-intro-icon" aria-hidden="true"><UserRound size={30} /></span>
-              <h2>Porta le tue uscite nel cloud</h2>
-              <p>Dopo l’accesso ritrovi percorsi e ritrovamenti su ogni dispositivo.</p>
+              <h2>Accesso completo a FunghiTracker</h2>
+              <p>Indice aggiornato, analisi del punto e archivio personale in un unico account.</p>
               <ul className="account-benefits">
-                <li><Cloud size={18} aria-hidden="true" /><span><strong>Archivio personale</strong>Le tracce pronte sono raccolte in un unico spazio privato.</span></li>
-                <li><CloudDownload size={18} aria-hidden="true" /><span><strong>Download immediato</strong>Scarica i GPX sui tuoi dispositivi quando ti servono.</span></li>
-                <li><ShieldCheck size={18} aria-hidden="true" /><span><strong>Controllo dei dati</strong>Consulta i limiti ed elimina definitivamente le tracce.</span></li>
+                <li><CalendarDays size={18} aria-hidden="true" /><span><strong>Indice aggiornato</strong>Vedi l’ultimo giorno disponibile, senza il ritardo di 7 giorni.</span></li>
+                <li><MapPinned size={18} aria-hidden="true" /><span><strong>Analisi del punto</strong>Leggi i fattori favorevoli e sfavorevoli dell’indice.</span></li>
+                <li><Cloud size={18} aria-hidden="true" /><span><strong>Archivio personale</strong>Conserva in cloud percorsi, ritrovamenti e modifiche.</span></li>
               </ul>
             </section>
             <AuthForm

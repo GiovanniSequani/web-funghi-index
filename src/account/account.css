@@ -1316,3 +1316,375 @@
   font-weight: 780;
   letter-spacing: -.025em;
 }
+
+/* Lifecycle and data-rights: one clear sequence rather than nested cards. */
+.lifecycle-panel {
+  gap: 18px;
+  margin: 2px 0 22px;
+  padding: 20px;
+  border-color: #536751;
+  border-radius: 8px;
+  background: #101b13;
+}
+
+.lifecycle-panel > header {
+  align-items: center;
+  gap: 13px;
+}
+
+.lifecycle-panel > header p,
+.account-rights-panel > header p {
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
+.lifecycle-panel > header h2 {
+  margin-top: 2px;
+  color: #f0f4ec;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.lifecycle-state-icon {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border-radius: 50%;
+}
+
+.lifecycle-description {
+  max-width: 52ch;
+  color: #becbbe;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.lifecycle-deadline {
+  padding: 10px 11px;
+  border-left: 3px solid #d7a752;
+  color: #e4d2a8;
+  background: rgba(181, 133, 35, .09);
+  font-size: 12px;
+}
+
+.lifecycle-documents {
+  gap: 7px;
+  padding-block: 2px;
+}
+
+.lifecycle-documents details {
+  border-color: #34483a;
+  border-radius: 7px;
+  background: #0c1510;
+}
+
+.lifecycle-documents summary {
+  min-height: 44px;
+  padding: 11px 12px;
+  color: #dce8d9;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.lifecycle-documents summary::marker,
+.account-delete-block summary::marker {
+  content: '';
+}
+
+.lifecycle-documents summary::-webkit-details-marker,
+.account-delete-block summary::-webkit-details-marker {
+  display: none;
+}
+
+.lifecycle-actions {
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.lifecycle-actions label {
+  padding: 10px 11px;
+  border: 1px solid #34483a;
+  border-radius: 7px;
+  color: #c7d4c4;
+  background: #0c1510;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lifecycle-actions input,
+.account-delete-confirm input {
+  width: 16px;
+  height: 16px;
+  accent-color: #79be79;
+}
+
+.lifecycle-actions > button,
+.lifecycle-panel > footer button,
+.account-rights-buttons button,
+.account-danger {
+  min-height: 42px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.lifecycle-actions > .account-primary {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.lifecycle-refuse {
+  width: fit-content;
+  min-height: 34px !important;
+  justify-self: start;
+  padding-inline: 0;
+  border: 0;
+  color: #d99a90;
+  background: transparent;
+}
+
+.lifecycle-panel > footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #314234;
+}
+
+.lifecycle-panel > footer button {
+  justify-content: center;
+  border-color: #435747;
+  color: #d5e0d3;
+  background: transparent;
+}
+
+.lifecycle-panel > footer button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lifecycle-panel .account-rights-panel {
+  margin: 4px 0 0;
+  padding: 17px 0 0;
+  border: 0;
+  border-top: 1px solid #314234;
+  border-radius: 0;
+  background: transparent;
+}
+
+.account-rights-panel {
+  gap: 17px;
+  padding: 20px;
+  border-color: #4c614e;
+  border-radius: 8px;
+  background: #101b13;
+}
+
+.account-rights-panel.compact {
+  padding: 17px 0 0;
+  border: 0;
+  border-top: 1px solid #314234;
+  border-radius: 0;
+  background: transparent;
+}
+
+.account-rights-panel > header {
+  gap: 11px;
+}
+
+.account-rights-panel > header > svg {
+  width: 19px;
+  color: #8dcd91;
+}
+
+.account-rights-panel > header h3 {
+  font-size: 16px;
+  letter-spacing: -.015em;
+}
+
+.account-rights-panel > header a {
+  padding: 7px 0 7px 9px;
+  color: #a9d9a8;
+}
+
+.account-export-block {
+  gap: 12px;
+}
+
+.account-rights-section-title {
+  padding-bottom: 2px;
+}
+
+.account-rights-section-title strong {
+  font-size: 13px;
+}
+
+.account-export-block > p,
+.account-delete-block p,
+.account-rights-panel.is-deletion-pending > p {
+  max-width: 54ch;
+  color: #b8c6b8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.account-inline-note {
+  padding: 10px 11px;
+  border-left: 3px solid #59745b;
+  color: #aebdaf;
+  background: rgba(89, 116, 91, .1);
+}
+
+.account-export-status {
+  gap: 9px;
+  padding: 12px;
+  border-color: #3b5040;
+  border-radius: 7px;
+  background: #0b1510;
+}
+
+.account-export-status > div:first-child span,
+.account-export-status dt {
+  letter-spacing: .035em;
+  text-transform: none;
+}
+
+.account-rights-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.account-rights-buttons button {
+  width: 100%;
+}
+
+.account-rights-buttons .account-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.account-rights-buttons > button:not(.account-primary) {
+  border-color: #425745;
+  color: #d2dfd0;
+  background: transparent;
+}
+
+.account-rights-note {
+  padding-top: 2px;
+  color: #96a897;
+  font-size: 10px;
+}
+
+.account-delete-block {
+  margin-top: 3px;
+  padding: 13px;
+  border: 1px solid rgba(192, 103, 91, .42);
+  border-radius: 7px;
+  background: rgba(95, 31, 25, .13);
+}
+
+.account-delete-block summary {
+  min-height: 24px;
+  color: #f0afa4;
+  font-size: 13px;
+}
+
+.account-delete-block > div {
+  gap: 12px;
+  padding-top: 13px;
+}
+
+.account-delete-confirm {
+  padding: 10px 0;
+  color: #dcc3be;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.account-danger {
+  width: 100%;
+  border-color: rgba(248, 113, 113, .55);
+  background: #6d2923;
+}
+
+.account-danger:hover:not(:disabled) {
+  background: #85332b;
+}
+
+.account-danger:disabled {
+  opacity: .5;
+}
+
+@media (max-width: 680px) {
+  .lifecycle-panel,
+  .account-rights-panel {
+    padding: 16px;
+    border-radius: 7px;
+  }
+
+  .lifecycle-panel .account-rights-panel,
+  .account-rights-panel.compact {
+    padding: 16px 0 0;
+    border-radius: 0;
+  }
+
+  .lifecycle-panel > footer,
+  .account-rights-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .lifecycle-refuse {
+    width: 100%;
+    justify-content: center;
+    min-height: 38px !important;
+    padding-inline: 12px;
+    border: 1px solid rgba(248, 113, 113, .35);
+    background: rgba(122, 37, 31, .12);
+  }
+}
+
+/* The account drawer is narrow even on desktop: benefits read better as a list. */
+.account-intro {
+  gap: 4px 13px;
+}
+
+.account-intro > p {
+  max-width: 37ch;
+  line-height: 1.45;
+}
+
+.account-benefits {
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-top: 17px;
+}
+
+.account-benefits li {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 9px;
+  padding: 11px 2px;
+}
+
+.account-benefits li + li {
+  border-top: 1px solid #2f4235;
+  border-left: 0;
+}
+
+.account-benefits li > svg {
+  width: 17px;
+  margin: 1px 0 0;
+}
+
+.account-benefits li span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.account-benefits li strong {
+  font-size: 12px;
+}
