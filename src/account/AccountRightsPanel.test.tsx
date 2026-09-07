@@ -2,7 +2,7 @@
 import React from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AccountRightsPanel, getExportStatusCopy } from './AccountRightsPanel';
+import { AccountRightsPanel, getExportPreparationCopy, getExportStatusCopy } from './AccountRightsPanel';
 import type { AccountExportJob } from './rights';
 
 const mocks = vi.hoisted(() => ({
@@ -76,5 +76,17 @@ describe('AccountRightsPanel', () => {
     render(<AccountRightsPanel accountState="active" />);
     expect(screen.getByText(/API di export e cancellazione non sono ancora attive/)).toBeTruthy();
     expect((screen.getByRole('button', { name: /Richiedi export/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('descrive la preparazione in background senza promettere una email non ancora operativa', () => {
+    mocks.state.job = { ...expired, status: 'pending', ready_at: null, expires_at: null };
+    render(<AccountRightsPanel accountState="active" />);
+    expect(screen.getByRole('status').textContent).toContain('notifica email non è ancora attiva');
+    expect(screen.getByRole('status').textContent).toContain('download avrà una scadenza');
+  });
+
+  it('promette la notifica soltanto quando il rollout email è dichiarato operativo', () => {
+    expect(getExportPreparationCopy(true)).toContain('Riceverai un’email quando sarà pronto');
+    expect(getExportPreparationCopy(false)).not.toContain('Riceverai un’email quando sarà pronto');
   });
 });

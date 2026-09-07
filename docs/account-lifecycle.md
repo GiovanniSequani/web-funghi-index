@@ -58,6 +58,21 @@ or GPX actions.
 
 Deletion-pending and security-restricted accounts are not offered autonomous`r`nreactivation. When the account-rights APIs are available, restricted users can`r`nrequest export and deletion without regaining GPX archive access. The UI never`r`npresents deletion as completed before the backend actually completes it.
 
+## Export email handoff
+
+The HTTPS entry point for a future export-ready email is
+`/mappa/?account=1`. Logged-out visitors remain in the account drawer until
+they authenticate; mounting the authenticated rights panel then reloads the
+latest `account_export_jobs` row through the existing RLS-protected query.
+The URL does not carry or consume an export ID, Storage path, signed URL,
+token, or email address.
+
+Pending exports are described as background work and always state that the
+download expires. The UI does not promise an email notification by default:
+`exportReadyEmailOperational` must be enabled only after OPS-004 and
+BE-EMAIL-004 are confirmed live. Expired jobs offer a new request and the
+download client rejects them before contacting private Storage.
+
 ## Verification
 
 Run npm.cmd test, npm.cmd run build, and npm.cmd run test:e2e.

@@ -1133,6 +1133,18 @@
 }
 .account-export-status dl div { display: grid; gap: 2px; }
 .account-export-status dd { margin: 0; color: #c8d3ca; font-size: 10px; }
+.account-export-delivery {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 10px 11px;
+  border-left: 3px solid #79d59a;
+  color: #c7d4ca;
+  background: rgba(69, 126, 82, .1);
+}
+.account-export-delivery > svg { margin-top: 1px; color: #83dba1; }
+.account-export-delivery p { margin: 0; font-size: 10.5px; line-height: 1.5; }
 .account-rights-buttons {
   display: flex;
   flex-wrap: wrap;

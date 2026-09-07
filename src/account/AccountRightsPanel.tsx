@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock3, Download, FileArchive, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
+import { Clock3, Download, FileArchive, MailCheck, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
 import type { AccountState } from './lifecycle';
 import type { AccountExportJob } from './rights';
 import { isExportDownloadable } from './rights';
@@ -31,7 +31,7 @@ export function getExportStatusCopy(job: AccountExportJob): {
 } {
   switch (job.status) {
     case 'pending':
-      return { label: 'In coda', description: 'La richiesta è stata ricevuta e attende l’elaborazione.', tone: 'neutral' };
+      return { label: 'In coda', description: 'La richiesta è stata ricevuta. La preparazione avviene in background.', tone: 'neutral' };
     case 'building':
       return { label: 'Preparazione in corso', description: 'Il server sta creando l’archivio personale.', tone: 'neutral' };
     case 'retry':
@@ -47,9 +47,16 @@ export function getExportStatusCopy(job: AccountExportJob): {
   }
 }
 
+export function getExportPreparationCopy(emailOperational: boolean): string {
+  return emailOperational
+    ? 'Stiamo preparando il tuo archivio in background. Riceverai un’email quando sarà pronto; il download avrà una scadenza.'
+    : 'Stiamo preparando il tuo archivio in background. La notifica email non è ancora attiva: controlla qui lo stato con Aggiorna. Il download avrà una scadenza.';
+}
+
 export function AccountRightsPanel(props: {
   accountState: AccountState;
   compact?: boolean;
+  exportReadyEmailOperational?: boolean;
 }) {
   const canUseRights = props.accountState === 'active' || props.accountState === 'restricted';
   const rights = useAccountRights(canUseRights);
@@ -75,6 +82,7 @@ export function AccountRightsPanel(props: {
   const requestedAt = formatDateTime(rights.job?.requested_at ?? null);
   const expiresAt = formatDateTime(rights.job?.expires_at ?? null);
   const size = formatBytes(rights.job?.size_bytes ?? null);
+  const isPreparing = Boolean(rights.job && ['pending', 'building', 'retry'].includes(rights.job.status));
 
   const confirmDeletionRequest = async () => {
     if (!deletionConfirmed) return;
@@ -131,6 +139,12 @@ export function AccountRightsPanel(props: {
         {!rights.loading && !rights.job && rights.available !== false && (
           <p className="account-inline-note">Nessun export richiesto.</p>
         )}
+        {!rights.loading && isPreparing && (
+          <div className="account-export-delivery" role="status">
+            <MailCheck size={17} aria-hidden="true" />
+            <p>{getExportPreparationCopy(props.exportReadyEmailOperational === true)}</p>
+          </div>
+        )}
 
         <div className="account-rights-buttons">
           {rights.job && isExportDownloadable(rights.job) ? (
@@ -146,7 +160,7 @@ export function AccountRightsPanel(props: {
             <RefreshCw size={16} aria-hidden="true" /> Aggiorna
           </button>
         </div>
-        <p className="account-rights-note"><Clock3 size={14} aria-hidden="true" /> Il backend applica frequenza e scadenza. Scarica l’export prima di confermare la cancellazione.</p>
+        <p className="account-rights-note"><Clock3 size={14} aria-hidden="true" /> Il file è privato e temporaneo. Scaricalo prima della scadenza e prima di confermare la cancellazione.</p>
       </div>
 
       <details className="account-delete-block">
