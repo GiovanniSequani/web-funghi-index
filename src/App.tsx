@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
 import { formatTrackDate, getTrackDateIso } from './account/trackDate';
@@ -9,6 +9,7 @@ import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditabl
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
 import { useAccountLifecycle } from './account/useAccountLifecycle';
+import { IndexAccessNotice } from './IndexAccessNotice';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
 import { filterTileSetsForIndexAccess } from './indexAccess';
@@ -128,8 +129,8 @@ function App() {
   const accountLifecycle = useAccountLifecycle(accountSession.session, accountSession.loading);
   const indexAccessReady = !accountSession.loading && !accountLifecycle.loading;
   const fullIndexAccess = Boolean(accountSession.session && accountLifecycle.fullAccess);
-  const authenticated = Boolean(accountSession.session);
-  const lifecyclePromptKeyRef = React.useRef<string | null>(null);
+  const [accessNoticeOpen, setAccessNoticeOpen] = React.useState(false);
+  const accessNoticeKeyRef = React.useRef<string | null>(null);
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
   const [editingTrackId, setEditingTrackId] = React.useState<string | null>(null);
   const [selectedEditPointIndex, setSelectedEditPointIndex] = React.useState<number | null>(null);
@@ -137,6 +138,7 @@ function App() {
   const editingTrackIdRef = React.useRef<string | null>(null);
 
   const [activeLayer, setActiveLayer] = React.useState<ActiveLayer>('off');
+  const [allTileSets, setAllTileSets] = React.useState<TileSet[]>([]);
   const [tileSets, setTileSets] = React.useState<TileSet[]>([]);
   const [selectedDate, setSelectedDate] = React.useState(DEFAULT_TILE_SET.date);
   const [selectedVersion, setSelectedVersion] = React.useState(DEFAULT_TILE_SET.version);
@@ -165,6 +167,16 @@ function App() {
   const availableDateKeys = React.useMemo(
     () => new Set(tileSets.map((tileSet) => normalizeDateKey(tileSet.date))),
     [tileSets],
+  );
+  const restrictedDateKeys = React.useMemo(
+    () => new Set(
+      !fullIndexAccess
+        ? allTileSets
+          .map((tileSet) => normalizeDateKey(tileSet.date))
+          .filter((date) => !availableDateKeys.has(date))
+        : [],
+    ),
+    [allTileSets, availableDateKeys, fullIndexAccess],
   );
   const calendarDays = React.useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
   const opacity = opacityPercent / 100;
@@ -203,12 +215,14 @@ function App() {
       }
 
       const latest = allowed[0];
+      setAllTileSets(available);
       setTileSets(allowed);
       setSelectedDate(latest.date);
       setSelectedVersion(latest.version);
       setCalendarMonth(parseTileDate(latest.date) ?? new Date());
     } catch (error) {
       if (signal?.aborted) return;
+      setAllTileSets([]);
       setTileSets([]);
       setSelectedDate(DEFAULT_TILE_SET.date);
       setSelectedVersion(DEFAULT_TILE_SET.version);
@@ -225,16 +239,21 @@ function App() {
   }, [indexAccessReady, loadTileSets]);
 
   React.useEffect(() => {
-    const access = accountLifecycle.access;
-    if (!accountSession.session || !access || accountLifecycle.fullAccess) {
-      lifecyclePromptKeyRef.current = null;
+    if (!indexAccessReady) return;
+    if (fullIndexAccess) {
+      accessNoticeKeyRef.current = null;
+      setAccessNoticeOpen(false);
       return;
     }
-    const key = accountSession.session.user.id + ':' + access.account_state + ':' + String(access.restriction_reason);
-    if (lifecyclePromptKeyRef.current === key) return;
-    lifecyclePromptKeyRef.current = key;
-    setAccountArchiveOpen(true);
-  }, [accountLifecycle.access, accountLifecycle.fullAccess, accountSession.session]);
+
+    const access = accountLifecycle.access;
+    const key = accountSession.session
+      ? `${accountSession.session.user.id}:${access?.account_state ?? 'unknown'}:${access?.restriction_reason ?? 'unknown'}`
+      : 'guest';
+    if (accessNoticeKeyRef.current === key) return;
+    accessNoticeKeyRef.current = key;
+    setAccessNoticeOpen(true);
+  }, [accountLifecycle.access, accountSession.session, fullIndexAccess, indexAccessReady]);
 
   React.useEffect(() => {
     if (!fullIndexAccess) setAnalysisPoint(null);
@@ -337,16 +356,15 @@ function App() {
         }}
         onShowAnalysis={() => {
           if (!fullIndexAccess) {
-            setAccountArchiveOpen(true);
+            setAccessNoticeOpen(true);
             return;
           }
           setAccountArchiveOpen(false);
           setDetailsPoint(null);
           setAnalysisPoint(selectedMapPoint);
         }}
-        onShowAccount={() => setAccountArchiveOpen(true)}
+        onShowAccessNotice={() => setAccessNoticeOpen(true)}
         fullIndexAccess={fullIndexAccess}
-        authenticated={authenticated}
       />,
     );
 
@@ -360,7 +378,7 @@ function App() {
       root.unmount();
       popup.remove();
     };
-  }, [authenticated, fullIndexAccess, mapReady, selectedMapPoint]);
+  }, [fullIndexAccess, mapReady, selectedMapPoint]);
 
   React.useEffect(() => {
     const map = mapRef.current;
@@ -701,9 +719,14 @@ function App() {
           <div>
             <p className="eyebrow">Indice sulla mappa</p>
           </div>
-          <button className="icon-button" type="button" onClick={() => loadTileSets()} title="Aggiorna tileset">
-            <RefreshCw size={18} aria-hidden="true" />
-          </button>
+          <div className="panel-header-actions">
+            <button className="icon-button" type="button" onClick={() => loadTileSets()} title="Aggiorna tileset">
+              <RefreshCw size={18} aria-hidden="true" />
+            </button>
+            <button className="icon-button mobile-index-close" type="button" onClick={() => setPanelOpen(false)} title="Nascondi pannello indice" aria-label="Nascondi pannello indice">
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
 
@@ -802,6 +825,7 @@ function App() {
               <div className="calendar-grid">
                 {calendarDays.map((day) => {
                   const available = availableDateKeys.has(day.key);
+                  const restricted = restrictedDateKeys.has(day.key);
                   const selected = normalizeDateKey(selectedDate) === day.key;
                   return (
                     <button
@@ -810,14 +834,17 @@ function App() {
                       className={[
                         'calendar-day',
                         day.inCurrentMonth ? '' : 'muted',
-                        available ? 'available' : 'unavailable',
+                        available ? 'available' : restricted ? 'restricted' : 'unavailable',
                         selected ? 'selected' : '',
                       ]
                         .filter(Boolean)
                         .join(' ')}
-                      onClick={() => selectCalendarDay(day.key)}
-                      disabled={!available}
-                      title={available ? 'Indice disponibile' : 'Indice non disponibile'}
+                      onClick={() => {
+                        if (available) selectCalendarDay(day.key);
+                        else if (restricted) setAccessNoticeOpen(true);
+                      }}
+                      disabled={!available && !restricted}
+                      title={available ? 'Indice disponibile' : restricted ? 'Disponibile con accesso completo' : 'Indice non disponibile'}
                     >
                       {day.date.getDate()}
                     </button>
@@ -868,6 +895,19 @@ function App() {
           point={analysisPoint}
           initialSpecies={activeLayer === 'finferli' ? 'finferli' : 'porcini'}
           onClose={() => setAnalysisPoint(null)}
+        />
+      )}
+      {accessNoticeOpen && indexAccessReady && !fullIndexAccess && (
+        <IndexAccessNotice
+          authenticated={Boolean(accountSession.session)}
+          access={accountLifecycle.access}
+          onClose={() => setAccessNoticeOpen(false)}
+          onAction={() => {
+            setAccessNoticeOpen(false);
+            setPanelOpen(false);
+            setCalendarOpen(false);
+            setAccountArchiveOpen(true);
+          }}
         />
       )}
       {accountArchiveOpen && (

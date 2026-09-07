@@ -160,6 +160,16 @@ select {
   gap: 8px;
 }
 
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-button.mobile-index-close {
+  display: none;
+}
+
 .eyebrow {
   margin: 0;
   color: #98ad88;
@@ -560,6 +570,17 @@ select {
   background: rgba(110, 34, 34, 0.68);
 }
 
+.calendar-day.restricted {
+  border-color: rgba(207, 157, 87, 0.78);
+  color: #f5dfb6;
+  background-color: rgba(96, 65, 33, 0.88);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(239, 183, 99, 0.42) 0 3px,
+    rgba(53, 104, 69, 0.45) 3px 6px
+  );
+}
+
 .calendar-day.muted {
   opacity: 0.45;
 }
@@ -573,6 +594,173 @@ button:focus-visible,
 .date-button:focus-visible {
   outline: 2px solid #80c7ff;
   outline-offset: 2px;
+}
+
+.index-access-backdrop {
+  position: absolute;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 9, 5, 0.54);
+  backdrop-filter: blur(5px);
+}
+
+.index-access-dialog {
+  width: min(470px, 100%);
+  max-height: min(680px, calc(100dvh - 48px));
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid rgba(213, 132, 93, 0.72);
+  border-top: 3px solid #d5835c;
+  border-radius: 12px;
+  color: #e8efdf;
+  background: #111c13;
+  box-shadow: 0 26px 75px rgba(0, 0, 0, 0.58);
+}
+
+.index-access-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.index-access-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(213, 132, 93, 0.58);
+  border-radius: 50%;
+  color: #f0b18e;
+  background: rgba(126, 61, 36, 0.24);
+}
+
+.index-access-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.index-access-dialog header button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  color: #bfcebd;
+  background: transparent;
+  cursor: pointer;
+}
+
+.index-access-dialog header button:hover {
+  color: #f1f5eb;
+  background: rgba(229, 239, 220, 0.1);
+}
+
+.index-access-dialog h1 {
+  max-width: 19ch;
+  margin: 16px 0 7px;
+  color: #f2f5ee;
+  font-size: clamp(21px, 4vw, 27px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+}
+
+.index-access-description {
+  max-width: 44ch;
+  margin: 0;
+  color: #b7c5b5;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.index-access-benefits {
+  margin-top: 20px;
+  padding: 14px 0;
+  border-top: 1px solid #2f4332;
+  border-bottom: 1px solid #2f4332;
+}
+
+.index-access-benefits > p {
+  margin: 0 0 11px;
+  color: #d9e7d3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.index-access-benefits ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.index-access-benefits li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: #7fc994;
+}
+
+.index-access-benefits li svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.index-access-benefits li span {
+  display: grid;
+  gap: 2px;
+  color: #aebdac;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.index-access-benefits li strong {
+  color: #e7efe2;
+  font-size: 13px;
+}
+
+.index-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin-top: 17px;
+}
+
+.index-access-actions button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #415343;
+  border-radius: 7px;
+  color: #c6d3c3;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.index-access-actions .index-access-primary {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  border-color: #d5835c;
+  color: #fff4ed;
+  background: #9d5036;
+}
+
+.index-access-actions .index-access-primary:hover {
+  background: #b35d40;
+}
+
+.index-access-actions > button:not(.index-access-primary):hover {
+  border-color: #6d8f6a;
+  color: #edf4e9;
 }
 
 .dataset-line,
@@ -752,6 +940,14 @@ button:focus-visible,
     gap: 5px;
   }
 
+  .panel-header-actions {
+    gap: 4px;
+  }
+
+  .icon-button.mobile-index-close {
+    display: inline-flex;
+  }
+
   .eyebrow {
     font-size: 9px;
     letter-spacing: 0.8px;
@@ -876,6 +1072,44 @@ button:focus-visible,
   .calendar-day {
     border-radius: 5px;
     font-size: 9px;
+  }
+
+  .index-access-backdrop {
+    padding: 14px;
+  }
+
+  .index-access-dialog {
+    max-height: calc(100dvh - 28px);
+    padding: 17px;
+    border-radius: 10px;
+  }
+
+  .index-access-dialog h1 {
+    margin-top: 14px;
+    font-size: 23px;
+  }
+
+  .index-access-description {
+    font-size: 13px;
+  }
+
+  .index-access-benefits {
+    margin-top: 16px;
+    padding: 12px 0;
+  }
+
+  .index-access-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-top: 14px;
+  }
+
+  .index-access-actions button {
+    width: 100%;
+  }
+
+  .index-access-actions .index-access-primary {
+    justify-content: center;
   }
 
   .dataset-line,

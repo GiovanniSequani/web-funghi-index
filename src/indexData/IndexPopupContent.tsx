@@ -21,11 +21,10 @@ export function IndexPopupContent(props: {
   onClose: () => void;
   onShowData: () => void;
   onShowAnalysis: () => void;
-  onShowAccount: () => void;
+  onShowAccessNotice: () => void;
   fullIndexAccess: boolean;
-  authenticated: boolean;
 }) {
-  const { point, onClose, onShowData, onShowAnalysis, onShowAccount } = props;
+  const { point, onClose, onShowData, onShowAnalysis, onShowAccessNotice } = props;
   const current = useIndexPoint(point, props.fullIndexAccess);
   const history = useIndexHistory(point, !props.fullIndexAccess);
   const limitedDay = history.state.status === 'success' && history.state.data
@@ -120,10 +119,10 @@ export function IndexPopupContent(props: {
         <button
           type="button"
           className="coordinate-popup-analysis"
-          onClick={props.fullIndexAccess ? onShowAnalysis : onShowAccount}
+          onClick={props.fullIndexAccess ? onShowAnalysis : onShowAccessNotice}
         >
           <Activity size={17} aria-hidden="true" />
-          <span>{props.fullIndexAccess ? 'Analisi indice' : props.authenticated ? 'Gestisci accesso' : 'Accedi per analisi'}</span>
+          <span>Analisi indice</span>
         </button>
       </div>
     </div>
