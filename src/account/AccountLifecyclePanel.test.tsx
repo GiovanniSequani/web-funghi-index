@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AccountLifecyclePanel } from './AccountLifecyclePanel';
 import type { AccountAccess, AccountLifecyclePublicConfig } from './lifecycle';
@@ -68,5 +68,24 @@ describe('AccountLifecyclePanel', () => {
     expect(screen.getByText('Account in eliminazione')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Accetta e riattiva' })).toBeNull();
     expect(screen.getByText('Diritti deletion_pending')).toBeTruthy();
+  });
+
+  it('inoltra il comando Esci anche dalla schermata di riaccettazione', async () => {
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    render(<AccountLifecyclePanel
+      config={config}
+      access={access}
+      loading={false}
+      error={null}
+      busy={false}
+      onNoticeSeen={vi.fn().mockResolvedValue(undefined)}
+      onAccept={vi.fn().mockResolvedValue(undefined)}
+      onRefuse={vi.fn().mockResolvedValue(undefined)}
+      onRefresh={vi.fn().mockResolvedValue(undefined)}
+      onSignOut={signOut}
+    />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Esci' }));
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
   });
 });

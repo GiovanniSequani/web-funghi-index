@@ -418,17 +418,23 @@ export function AccountArchiveDrawer(props: {
     void Promise.all(workers);
     return () => { active = false; };
   }, [archive]);
-  const runAuth = async (action: () => Promise<void>) => {
+  const runAuth = async (action: () => Promise<void>): Promise<boolean> => {
     setAuthBusy(true);
     setAuthError(null);
     setAuthNotice(null);
     try {
       await action();
+      return true;
     } catch (error) {
       setAuthError(toAccountError(error).message);
+      return false;
     } finally {
       setAuthBusy(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    if (await runAuth(signOut)) props.onClose();
   };
 
   const runLifecycleAction = async (
@@ -635,11 +641,11 @@ export function AccountArchiveDrawer(props: {
                 setAuthError(null);
                 setAuthNotice(null);
               }}
-              onLogin={(email, password) => runAuth(async () => {
+              onLogin={async (email, password) => { await runAuth(async () => {
                 await signIn(email, password);
                 await props.lifecycle.refresh('interactive_login');
-              })}
-              onRegister={(email, password, username) => runAuth(async () => {
+              }); }}
+              onRegister={async (email, password, username) => { await runAuth(async () => {
                 if (!props.lifecycle.config) throw new Error('Configurazione account non disponibile. Riprova.');
                 const result = await signUp({
                   email,
@@ -651,11 +657,11 @@ export function AccountArchiveDrawer(props: {
                   setAuthView('login');
                   setAuthNotice('Account creato. Controlla l’email e confermala prima di accedere.');
                 }
-              })}
-              onPasswordReset={(email) => runAuth(async () => {
+              }); }}
+              onPasswordReset={async (email) => { await runAuth(async () => {
                 await requestPasswordReset(email);
                 setAuthNotice('Se esiste un account per questa email, riceverai un link per scegliere una nuova password.');
-              })}
+              }); }}
             />
           </>
         )}
@@ -675,7 +681,7 @@ export function AccountArchiveDrawer(props: {
             onAccept={() => runLifecycleAction(acceptCurrentContributorTerms)}
             onRefuse={() => runLifecycleAction(refuseCurrentContributorTerms)}
             onRefresh={async () => { await props.lifecycle.refresh('account_action'); }}
-            onSignOut={() => runAuth(signOut)}
+            onSignOut={handleSignOut}
           />
         )}
 
@@ -693,7 +699,7 @@ export function AccountArchiveDrawer(props: {
               <button type="button" onClick={() => setUsageOpen((open) => !open)} aria-expanded={usageOpen}>
                 <HardDrive size={16} aria-hidden="true" /> Utilizzo account
               </button>
-              <button type="button" onClick={() => void runAuth(signOut)} disabled={authBusy}>
+              <button type="button" onClick={() => void handleSignOut()} disabled={authBusy}>
                 <LogOut size={16} aria-hidden="true" /> Esci
               </button>
             </section>
