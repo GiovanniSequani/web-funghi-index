@@ -39,13 +39,7 @@ const legalDocumentKind = normalizedPath === '/termini'
       ? 'account'
       : null;
 const publicPage = resolvePublicPage(window.location.pathname);
-const publicPageTitles = {
-  home: 'Funghi Tracker | Indice, meteo e percorsi',
-  map: 'Mappa | Funghi Tracker',
-  method: 'Come funziona | Funghi Tracker',
-  archive: 'Archivio | Funghi Tracker',
-} as const;
-if (publicPage !== 'unknown') document.title = publicPageTitles[publicPage];
+document.title = 'FunghiTracker';
 const content = normalizedPath === '/elimina-account'
   ? <AccountDeletionPage callback={deletionTokenCallback} />
   : mobileConfirmCallback

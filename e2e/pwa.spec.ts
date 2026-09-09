@@ -2,9 +2,11 @@ import { expect, test } from '@playwright/test';
 
 test('mantiene il sito classico e pubblica i metadati della web app', async ({ page, request }) => {
   await page.goto('/');
+  await expect(page).toHaveTitle('FunghiTracker');
 
   await expect(page.getByRole('heading', { name: 'Capire quando il bosco sta cambiando.' })).toBeVisible();
   await page.getByRole('link', { name: /Apri la mappa/ }).click();
+  await expect(page).toHaveTitle('FunghiTracker');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/apple-touch-icon.png');
@@ -26,5 +28,12 @@ test('mantiene il sito classico e pubblica i metadati della web app', async ({ p
     const response = await request.get(path);
     expect(response.ok(), path).toBe(true);
     expect(response.headers()['content-type']).toContain('image/png');
+  }
+});
+
+test('usa il nome FunghiTracker in tutte le pagine pubbliche', async ({ page }) => {
+  for (const path of ['/', '/mappa/', '/come-funziona/', '/archivio/', '/termini/', '/privacy/', '/account-e-dati/', '/elimina-account/']) {
+    await page.goto(path);
+    await expect(page).toHaveTitle('FunghiTracker');
   }
 });
