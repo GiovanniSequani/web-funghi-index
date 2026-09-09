@@ -10,11 +10,11 @@ for (const viewport of [
     await expect(page.getByRole('heading', { name: 'Un modello AI per lo studio dei funghi.' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Home', exact: true }).first()).toBeVisible();
     await expect(page.getByRole('figure', { name: 'Esempio dell’indice su una griglia territoriale' })).toBeVisible();
-    await expect(page.locator('.index-grid i')).toHaveCount(176);
-    await expect(page.locator('.index-mini-analysis li.favorable')).toHaveCount(2);
+    await expect(page.locator('.index-terrain-render')).toBeVisible();
+    await expect(page.locator('.index-mini-analysis li.favorable')).toHaveCount(3);
     await expect(page.locator('.index-mini-analysis li.unfavorable')).toHaveCount(1);
     await expect(page.locator('.index-mini-analysis li', { hasText: 'Piogge recenti' })).toBeVisible();
-    await expect(page.locator('.index-mini-analysis li', { hasText: 'Rischio di asciugamento' })).toBeVisible();
+    await expect(page.locator('.index-mini-analysis li', { hasText: 'Asciugamento' })).toBeVisible();
     await expect(page.locator('.site-brand-icon').first()).toHaveAttribute('src', '/icons/icon-192.png');
     await expect(page.getByText('0–100', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Apri la mappa/ })).toBeVisible();
@@ -23,7 +23,10 @@ for (const viewport of [
 
     await page.getByRole('link', { name: 'Come funziona', exact: true }).first().click();
     await expect.poll(() => new URL(page.url()).pathname).toBe('/come-funziona/');
-    await expect(page.getByRole('heading', { name: 'Come viene calcolato l’indice.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Come funziona l’indice.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Come viene calibrato il modello.' })).toBeVisible();
+    await expect(page.getByText('Il punto del ritrovamento non riceve un punteggio più alto.')).toBeVisible();
+    await expect(page.locator('.method-scale-track i')).toHaveCount(8);
 
     await page.getByRole('link', { name: 'Archivio', exact: true }).first().click();
     await expect.poll(() => new URL(page.url()).pathname).toBe('/archivio/');

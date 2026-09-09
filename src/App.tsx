@@ -12,6 +12,7 @@ import { useAccountLifecycle } from './account/useAccountLifecycle';
 import { IndexAccessNotice } from './IndexAccessNotice';
 import { IndexAnalysisDrawer } from './indexData/IndexAnalysisDrawer';
 import { IndexPopupContent } from './indexData/IndexPopupContent';
+import { INDEX_LEGEND_STOPS } from './indexLegend';
 import { filterTileSetsForIndexAccess } from './indexAccess';
 import { DEFAULT_TILE_SET, getAvailableTileSets, tileUrl } from './supabaseTiles';
 import { BASE_MAP_MAX_ZOOM, PLACE_LABEL_LAYER_ID, SATELLITE_STYLE } from './mapStyle';
@@ -36,17 +37,6 @@ const GPX_SELECTED_POINT_LAYER_ID = 'cloud-gpx-selected-point';
 const GPX_ENDPOINTS_LAYER_ID = 'cloud-gpx-endpoints';
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
-const LEGEND_STOPS = [
-  { value: '0', label: 'assenza', color: 'rgba(255, 255, 255, 0)' },
-  { value: '15', label: 'tracce', color: 'rgba(180, 230, 255, 0.59)' },
-  { value: '30', label: 'presenza debole', color: 'rgba(100, 200, 255, 0.78)' },
-  { value: '45', label: 'presenza debole', color: 'rgba(80, 180, 90, 1)' },
-  { value: '60', label: 'presenza moderata', color: 'rgba(255, 230, 70, 1)' },
-  { value: '75', label: 'presenza intensa', color: 'rgba(255, 120, 60, 1)' },
-  { value: '90', label: 'presenza abbondante', color: 'rgba(210, 60, 40, 1)' },
-  { value: '100', label: 'presenza abbondante', color: 'rgba(120, 78, 42, 1)' },
-] as const;
-
 function uniqueDates(tileSets: TileSet[]): string[] {
   return [...new Set(tileSets.map((tileSet) => tileSet.date))];
 }
@@ -695,12 +685,12 @@ function App() {
           </button>
         </div>
         <div className="legend-scale" aria-hidden="true">
-          {LEGEND_STOPS.map((stop) => (
+          {INDEX_LEGEND_STOPS.map((stop) => (
             <span key={stop.value} style={{ background: stop.color }} />
           ))}
         </div>
         <div className="legend-labels">
-          {LEGEND_STOPS.map((stop) => (
+          {INDEX_LEGEND_STOPS.map((stop) => (
             <div key={stop.value}>
               <span>{stop.value}</span>
               <strong>{stop.label}</strong>

@@ -4,7 +4,7 @@ test('mantiene il sito classico e pubblica i metadati della web app', async ({ p
   await page.goto('/');
   await expect(page).toHaveTitle('FunghiTracker');
 
-  await expect(page.getByRole('heading', { name: 'Capire quando il bosco sta cambiando.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Un modello AI per lo studio dei funghi.' })).toBeVisible();
   await page.getByRole('link', { name: /Apri la mappa/ }).click();
   await expect(page).toHaveTitle('FunghiTracker');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
