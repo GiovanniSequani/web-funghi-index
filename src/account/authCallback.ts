@@ -9,8 +9,16 @@ export type ParsedAuthCallback =
 
 const CONFIRM_TYPES = new Set<EmailOtpType>(['signup', 'email']);
 
+export type ConsumedAuthCallback = {
+  mode: AuthCallbackMode;
+  callback: ParsedAuthCallback;
+};
+
 export function parseAuthCallback(search: string, mode: AuthCallbackMode): ParsedAuthCallback {
-  const params = new URLSearchParams(search);
+  const params = new URLSearchParams(search.replace(/^[?#]/, ''));
+  if ([...params.keys()].some((key) => key !== 'token_hash' && key !== 'type')) {
+    return { valid: false, message: 'Il link non è valido o è incompleto.' };
+  }
   const tokenHashes = params.getAll('token_hash');
   const types = params.getAll('type');
   if (tokenHashes.length !== 1 || types.length !== 1) {
@@ -34,16 +42,34 @@ export function parseAuthCallback(search: string, mode: AuthCallbackMode): Parse
 }
 
 
-export function resolveAuthCallbackMode(pathname: string, search: string): AuthCallbackMode | null {
+export function resolveAuthCallbackMode(pathname: string): AuthCallbackMode | null {
   let path = pathname || '/';
   while (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
   if (path === '/auth/confirm') return 'confirm';
   if (path === '/auth/recovery') return 'recovery';
-  if (path !== '/') return null;
-
-  if (parseAuthCallback(search, 'confirm').valid) return 'confirm';
-  if (parseAuthCallback(search, 'recovery').valid) return 'recovery';
   return null;
+}
+
+export function consumeAuthCallback(
+  pathname: string,
+  search: string,
+  hash: string,
+  replaceUrl: (cleanPath: string) => void,
+): ConsumedAuthCallback | null {
+  const mode = resolveAuthCallbackMode(pathname);
+  if (!mode) return null;
+
+  // Capture the one-time credential in memory and clear both query and fragment
+  // before React renders or the user can navigate away from the callback.
+  replaceUrl(mode === 'confirm' ? '/auth/confirm' : '/auth/recovery');
+
+  const queryHasCredential = /(?:^|[?&])(?:token_hash|type)=/.test(search);
+  const fragmentHasCredential = /(?:^|[#&])(?:token_hash|type)=/.test(hash);
+  if (queryHasCredential && fragmentHasCredential) {
+    return { mode, callback: { valid: false, message: 'Il link non è valido o è incompleto.' } };
+  }
+  const serialized = fragmentHasCredential ? hash : search;
+  return { mode, callback: parseAuthCallback(serialized, mode) };
 }
 export function isUsedOrExpiredTokenError(error: unknown): boolean {
   const candidate = error as { code?: string; message?: string };

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  consumeAuthCallback,
   isUsedOrExpiredTokenError,
   parseAuthCallback,
   resolveAuthCallbackMode,
@@ -23,6 +24,7 @@ describe('auth callback contract', () => {
     expect(parseAuthCallback('?type=recovery&token_hash=abc123', 'confirm').valid).toBe(false);
     expect(parseAuthCallback('?type=signup&token_hash=one&token_hash=two', 'confirm').valid).toBe(false);
     expect(parseAuthCallback('?type=signup', 'confirm').valid).toBe(false);
+    expect(parseAuthCallback('?type=signup&token_hash=abc123&access_token=unexpected', 'confirm').valid).toBe(false);
   });
 
   it('inoltra token_hash e type a verifyOtp senza altri dati', async () => {
@@ -50,16 +52,31 @@ describe('auth callback contract', () => {
     expect(isUsedOrExpiredTokenError({ message: 'network failed' })).toBe(false);
   });
 
-  it('instrada anche i link legacy che il template Supabase apre sulla root', () => {
-    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=email')).toBe('confirm');
-    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=signup')).toBe('confirm');
-    expect(resolveAuthCallbackMode('/', '?token_hash=abc123&type=recovery')).toBe('recovery');
-    expect(resolveAuthCallbackMode('/', '?type=email')).toBeNull();
-    expect(resolveAuthCallbackMode('/mappa', '?token_hash=abc123&type=email')).toBeNull();
+  it('non tratta token su URL arbitrari come callback Auth', () => {
+    expect(resolveAuthCallbackMode('/')).toBeNull();
+    expect(resolveAuthCallbackMode('/mappa')).toBeNull();
   });
 
   it('mantiene disponibili i percorsi auth espliciti anche con parametri invalidi', () => {
-    expect(resolveAuthCallbackMode('/auth/confirm', '')).toBe('confirm');
-    expect(resolveAuthCallbackMode('/auth/recovery/', '')).toBe('recovery');
+    expect(resolveAuthCallbackMode('/auth/confirm')).toBe('confirm');
+    expect(resolveAuthCallbackMode('/auth/recovery/')).toBe('recovery');
+  });
+
+  it('acquisisce il fragment e pulisce URL prima di restituire la callback', () => {
+    const replaceUrl = vi.fn();
+    const consumed = consumeAuthCallback('/auth/recovery', '', '#type=recovery&token_hash=credential-in-memory', replaceUrl);
+    expect(replaceUrl).toHaveBeenCalledWith('/auth/recovery');
+    expect(consumed).toEqual({
+      mode: 'recovery',
+      callback: { valid: true, type: 'recovery', tokenHash: 'credential-in-memory' },
+    });
+  });
+
+  it('pulisce subito anche query legacy e rifiuta credenziali ambigue', () => {
+    const replaceUrl = vi.fn();
+    expect(consumeAuthCallback('/auth/confirm', '?type=email&token_hash=legacy', '', replaceUrl))
+      .toMatchObject({ mode: 'confirm', callback: { valid: true } });
+    expect(replaceUrl).toHaveBeenCalledWith('/auth/confirm');
+    expect(consumeAuthCallback('/auth/confirm', '?type=email&token_hash=query', '#type=email&token_hash=fragment', vi.fn())?.callback.valid).toBe(false);
   });
 });

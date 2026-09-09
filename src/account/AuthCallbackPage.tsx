@@ -2,7 +2,6 @@
 import { CheckCircle2, KeyRound, MailCheck } from 'lucide-react';
 import {
   isUsedOrExpiredTokenError,
-  parseAuthCallback,
   updateRecoveryPassword,
   verifyAuthCallback,
   type AuthCallbackMode,
@@ -14,10 +13,11 @@ type ValidCallback = Extract<ParsedAuthCallback, { valid: true }>;
 
 export default function AuthCallbackPage(props: {
   mode: AuthCallbackMode;
+  callback: ParsedAuthCallback;
   verify?: (callback: ValidCallback) => Promise<void>;
   updatePassword?: (password: string) => Promise<void>;
 }) {
-  const [callback] = React.useState(() => parseAuthCallback(window.location.search, props.mode));
+  const [callback] = React.useState(props.callback);
   const [status, setStatus] = React.useState<'ready' | 'verifying' | 'verified' | 'saving' | 'complete' | 'error'>('ready');
   const [message, setMessage] = React.useState<string | null>(callback.valid ? null : callback.message);
   const [password, setPassword] = React.useState('');
@@ -29,7 +29,6 @@ export default function AuthCallbackPage(props: {
     if (!callback.valid || status === 'verifying') return;
     setStatus('verifying');
     setMessage(null);
-    window.history.replaceState(null, document.title, window.location.pathname);
     try {
       await verify(callback);
       setStatus(props.mode === 'confirm' ? 'complete' : 'verified');
