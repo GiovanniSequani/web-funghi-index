@@ -27,7 +27,9 @@ The map remains mounted and no rights interaction changes its camera.
 
 ## Hosting and verification
 
-Cloudflare native SPA fallback covers /account-e-dati and /elimina-account. The build intentionally has neither a top-level 404.html nor _redirects rewrites to /index.html, so direct requests retain their pathname. The public deletion route uses Cache-Control: no-store and Referrer-Policy: no-referrer, mirrored in vercel.json.
+Cloudflare native SPA fallback covers /account-e-dati and /elimina-account. The build intentionally has neither a top-level 404.html nor _redirects rewrites to /index.html, so direct requests retain their pathname. Both `/elimina-account` and `/elimina-account/` use Cache-Control: no-store and Referrer-Policy: no-referrer, mirrored in vercel.json. The site sends HSTS on HTTPS responses.
+
+Export polling is bounded: it uses exponential backoff with jitter, honours Retry-After when an upstream error exposes it, pauses while the browser is offline, and leaves the manual Aggiorna action available after the retry limit.
 
 Run npm.cmd test, npm.cmd run build, and npm.cmd run test:e2e with the account archive, account rights, and legal page specifications.
 

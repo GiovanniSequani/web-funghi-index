@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { type GeoJSONSource, type Map, type MapMouseEvent } from 'maplibre-gl';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
@@ -285,7 +286,7 @@ function App() {
       setSelectedMapPoint(null);
       return true;
     };
-    map.on('click', (event) => {
+    map.on('click', (event: MapMouseEvent) => {
       if (Date.now() < suppressMapClickUntil) return;
       if (editingTrackIdRef.current) {
         selectNearestEditingPoint(event.point, 30);
@@ -293,7 +294,7 @@ function App() {
       }
       setSelectedMapPoint(null);
     });
-    map.on('contextmenu', (event) => {
+    map.on('contextmenu', (event: MapMouseEvent) => {
       event.originalEvent.preventDefault();
       setSelectedMapPoint({ longitude: event.lngLat.lng, latitude: event.lngLat.lat });
     });

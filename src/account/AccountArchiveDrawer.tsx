@@ -410,7 +410,7 @@ export function AccountArchiveDrawer(props: {
       while (cursor < pending.length && active) {
         const track = pending[cursor++];
         try {
-          const data = await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+          const data = await decodeCloudGpx(await downloadTrack(track), track.original_filename, archive.config);
           if (active) setTrackDetails((current) => ({ ...current, [track.id]: data }));
         } catch { if (active) setTrackDetails((current) => ({ ...current, [track.id]: 'error' })); }
       }
@@ -476,12 +476,13 @@ export function AccountArchiveDrawer(props: {
   };
 
   const handleDisplay = async (track: GpxTrack) => {
+    if (!archive) return;
     if (props.visibleTrackIds.has(track.id)) { props.onHideTrack(track.id); return; }
     setTrackActions((current) => ({ ...current, [track.id]: 'display' }));
     setArchiveError(null);
     try {
       const cached = trackDetails[track.id];
-      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename, archive.config);
       if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
       const markers = await loadTrackMarkers(track.id);
       props.onShowTrack({ id: track.id, name: track.display_name, data, track, markers });
@@ -493,11 +494,12 @@ export function AccountArchiveDrawer(props: {
 
 
   const handleEdit = async (track: GpxTrack) => {
+    if (!archive) return;
     setTrackActions((current) => ({ ...current, [track.id]: 'edit' }));
     setArchiveError(null);
     try {
       const cached = trackDetails[track.id];
-      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename);
+      const data = typeof cached === 'object' ? cached : await decodeCloudGpx(await downloadTrack(track), track.original_filename, archive.config);
       if (data.lines.features.length === 0) throw new Error('La traccia non contiene segmenti visualizzabili.');
       const markers = await loadTrackMarkers(track.id);
       props.onEditTrack({ id: track.id, name: track.display_name, data, track, markers });

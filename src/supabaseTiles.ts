@@ -1,9 +1,13 @@
 ﻿import type { Species, TileSet } from './types';
 
+import { backoffDelay, parseRetryAfter, waitForDelay, waitUntilOnline } from './networkRetry';
+
 const DEFAULT_SUPABASE_URL = 'https://ovdfsehovsrdzcoqdlfh.supabase.co';
 const SUPABASE_BUCKET = 'tiles';
 const TILE_SET_REGEX = /^(\d{4})([-_])(\d{2})\2(\d{2})_v(\d+)$/;
 const TILE_SET_MANIFEST = 'tile_sets.json';
+const TILE_MANIFEST_MAX_ATTEMPTS = 4;
+const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 
@@ -67,13 +71,28 @@ function sortTileSets(items: ParsedTileSet[]): TileSet[] {
 }
 
 async function getAvailableTileSetsFromManifest(signal?: AbortSignal): Promise<TileSet[]> {
-  const response = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${TILE_SET_MANIFEST}?t=${Date.now()}`,
-    { method: 'GET', signal, cache: 'no-store' },
-  );
+  const url = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${TILE_SET_MANIFEST}?t=${Date.now()}`;
+  let response: Response | null = null;
+  let lastError: unknown = null;
 
-  if (!response.ok) {
-    throw new Error(`Tile manifest failed: ${response.status}`);
+  for (let attempt = 0; attempt < TILE_MANIFEST_MAX_ATTEMPTS; attempt += 1) {
+    await waitUntilOnline(signal);
+    try {
+      response = await fetch(url, { method: 'GET', signal, cache: 'no-store' });
+      if (response.ok || !TRANSIENT_STATUS.has(response.status)) break;
+      lastError = new Error(`Tile manifest failed: ${response.status}`);
+      if (attempt + 1 >= TILE_MANIFEST_MAX_ATTEMPTS) break;
+      await waitForDelay(backoffDelay(attempt, { baseDelayMs: 1_000, maxDelayMs: 15_000 }, parseRetryAfter(response.headers.get('Retry-After'))), signal);
+    } catch (cause) {
+      if (signal?.aborted) throw cause;
+      lastError = cause;
+      if (attempt + 1 >= TILE_MANIFEST_MAX_ATTEMPTS) break;
+      await waitForDelay(backoffDelay(attempt, { baseDelayMs: 1_000, maxDelayMs: 15_000 }), signal);
+    }
+  }
+
+  if (!response?.ok) {
+    throw lastError instanceof Error ? lastError : new Error(`Tile manifest failed: ${response?.status ?? 'network'}`);
   }
 
   const manifest = (await response.json()) as TileSetManifest;

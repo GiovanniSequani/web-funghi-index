@@ -145,6 +145,11 @@ export function AccountRightsPanel(props: {
             <p>{getExportPreparationCopy(props.exportReadyEmailOperational === true)}</p>
           </div>
         )}
+        {rights.pollingPaused && (
+          <p className="account-inline-note" role="status">
+            Aggiornamento automatico sospeso{typeof navigator !== 'undefined' && navigator.onLine === false ? ' mentre sei offline' : ' dopo vari tentativi'}. Usa Aggiorna per riprovare.
+          </p>
+        )}
 
         <div className="account-rights-buttons">
           {rights.job && isExportDownloadable(rights.job) ? (

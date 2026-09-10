@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     available: true,
     error: null,
     deletionNotice: null,
+    pollingPaused: false,
     refresh: vi.fn(),
     requestExport: vi.fn(),
     downloadExport: vi.fn(),
@@ -34,6 +35,7 @@ afterEach(() => {
     available: true,
     error: null,
     deletionNotice: null,
+    pollingPaused: false,
   });
 });
 

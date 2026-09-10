@@ -80,3 +80,19 @@ Run npm.cmd test, npm.cmd run build, and npm.cmd run test:e2e.
 Unit coverage includes legacy rollout fallback, fail-closed access,
 server-exact RPC arguments, lifecycle signup metadata, document version
 matching, terms notice timing, and deletion-pending UI.
+
+## Security hardening status (2026-09)
+
+The web remediation for SEC-AUD-006, SEC-AUD-010, SEC-AUD-015 and the web
+part of SEC-AUD-018 is implemented. GPX import and cloud rendering check the
+server-published size limits before full reads, use capped gzip streaming with
+integrity checks, and reject DTD/ENTITY, malformed, multi-member, oversized,
+or anomalous files before map rendering. MapLibre is pinned to 6.4.1 and the
+application keeps static attributions plus React DOM popups. HSTS is applied
+globally, while both deletion-route spellings use no-store/no-referrer.
+
+Tile discovery and export status polling now use bounded exponential backoff,
+jitter, Retry-After where exposed, and offline pause. Manual refresh remains
+available when the polling limit is reached. This is frontend evidence only;
+Cloudflare header delivery and backend worker behavior still require their
+respective production checks.

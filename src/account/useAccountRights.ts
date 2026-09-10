@@ -9,6 +9,11 @@ import type { AccountExportJob, DeletionVerificationResponse } from './rights';
 import { isExportDownloadable } from './rights';
 import { toAccountError } from './validation';
 import { AccountArchiveError } from './types';
+import { backoffDelay, browserIsOnline, retryAfterFromError } from '../networkRetry';
+
+const EXPORT_POLL_MAX_ATTEMPTS = 7;
+const EXPORT_POLL_BASE_DELAY_MS = 15_000;
+const EXPORT_POLL_MAX_DELAY_MS = 120_000;
 
 export type AccountRightsState = {
   job: AccountExportJob | null;
@@ -17,6 +22,7 @@ export type AccountRightsState = {
   available: boolean | null;
   error: string | null;
   deletionNotice: DeletionVerificationResponse | null;
+  pollingPaused: boolean;
   refresh: () => Promise<void>;
   requestExport: () => Promise<void>;
   downloadExport: () => Promise<void>;
@@ -41,10 +47,15 @@ export function useAccountRights(enabled: boolean): AccountRightsState {
   const [available, setAvailable] = React.useState<boolean | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [deletionNotice, setDeletionNotice] = React.useState<DeletionVerificationResponse | null>(null);
+  const [pollAttempt, setPollAttempt] = React.useState(0);
+  const [online, setOnline] = React.useState(browserIsOnline);
   const sequenceRef = React.useRef(0);
+  const inFlightRef = React.useRef(false);
+  const retryAfterRef = React.useRef<number | null>(null);
 
-  const refresh = React.useCallback(async () => {
-    if (!enabled) return;
+  const loadJob = React.useCallback(async (automatic: boolean) => {
+    if (!enabled || inFlightRef.current) return;
+    inFlightRef.current = true;
     const sequence = ++sequenceRef.current;
     setLoading(true);
     setError(null);
@@ -53,15 +64,36 @@ export function useAccountRights(enabled: boolean): AccountRightsState {
       if (sequence !== sequenceRef.current) return;
       setJob(nextJob);
       setAvailable(true);
+      retryAfterRef.current = null;
+      setPollAttempt((current) => automatic ? current + 1 : 0);
     } catch (cause) {
       if (sequence !== sequenceRef.current) return;
+      retryAfterRef.current = retryAfterFromError(cause);
       const normalized = toAccountError(cause);
       if (normalized.code === 'rights_unavailable') setAvailable(false);
       setError(normalized.message);
+      setPollAttempt((current) => automatic ? current + 1 : 0);
     } finally {
       if (sequence === sequenceRef.current) setLoading(false);
+      inFlightRef.current = false;
     }
   }, [enabled]);
+
+  const refresh = React.useCallback(async () => {
+    retryAfterRef.current = null;
+    setPollAttempt(0);
+    await loadJob(false);
+  }, [loadJob]);
+
+  React.useEffect(() => {
+    const updateOnline = () => setOnline(browserIsOnline());
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => {
+      window.removeEventListener('online', updateOnline);
+      window.removeEventListener('offline', updateOnline);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!enabled) {
@@ -72,16 +104,23 @@ export function useAccountRights(enabled: boolean): AccountRightsState {
       setAvailable(null);
       setError(null);
       setDeletionNotice(null);
+      setPollAttempt(0);
+      retryAfterRef.current = null;
       return;
     }
     void refresh();
   }, [enabled, refresh]);
 
   React.useEffect(() => {
-    if (!enabled || !job || !['pending', 'building', 'retry'].includes(job.status)) return;
-    const timer = window.setTimeout(() => void refresh(), 15_000);
+    if (!enabled || !online || !job || !['pending', 'building', 'retry'].includes(job.status)
+      || pollAttempt >= EXPORT_POLL_MAX_ATTEMPTS) return;
+    const delay = backoffDelay(pollAttempt, {
+      baseDelayMs: EXPORT_POLL_BASE_DELAY_MS,
+      maxDelayMs: EXPORT_POLL_MAX_DELAY_MS,
+    }, retryAfterRef.current);
+    const timer = window.setTimeout(() => void loadJob(true), delay);
     return () => window.clearTimeout(timer);
-  }, [enabled, job, refresh]);
+  }, [enabled, job, loadJob, online, pollAttempt]);
 
   const requestExport = React.useCallback(async () => {
     setBusy('request_export');
@@ -90,6 +129,8 @@ export function useAccountRights(enabled: boolean): AccountRightsState {
       const nextJob = await requestMyDataExport();
       setJob(nextJob);
       setAvailable(true);
+      setPollAttempt(0);
+      retryAfterRef.current = null;
     } catch (cause) {
       const normalized = toAccountError(cause);
       if (normalized.code === 'rights_unavailable') setAvailable(false);
@@ -147,6 +188,8 @@ export function useAccountRights(enabled: boolean): AccountRightsState {
     available,
     error,
     deletionNotice,
+    pollingPaused: Boolean(job && ['pending', 'building', 'retry'].includes(job.status)
+      && (!online || pollAttempt >= EXPORT_POLL_MAX_ATTEMPTS)),
     refresh,
     requestExport,
     downloadExport,

@@ -21,5 +21,8 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    optimizeDeps: {
+      exclude: ['maplibre-gl'],
+    },
   };
 });
