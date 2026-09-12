@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import * as maplibregl from 'maplibre-gl';
 import { type GeoJSONSource, type Map, type MapMouseEvent } from 'maplibre-gl';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
@@ -36,6 +37,8 @@ const GPX_CLOUD_MARKERS_LAYER_ID = 'cloud-gpx-cloud-markers';
 const GPX_CLOUD_MARKER_LABELS_LAYER_ID = 'cloud-gpx-cloud-marker-labels';
 const GPX_SELECTED_POINT_LAYER_ID = 'cloud-gpx-selected-point';
 const GPX_ENDPOINTS_LAYER_ID = 'cloud-gpx-endpoints';
+
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
 function uniqueDates(tileSets: TileSet[]): string[] {
