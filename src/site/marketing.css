@@ -502,6 +502,15 @@
   min-height:210px;
   padding:38px clamp(22px,7vw,110px);
 }
+.account-boundary {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.account-boundary>div {
+  padding-inline:clamp(22px,4vw,64px);
+}
+.account-boundary>div:nth-child(3) {
+  background:#d4ded2;
+}
 .account-boundary svg,
 .account-boundary .open-dot {
   width:29px;
@@ -646,6 +655,14 @@
 .map-callout.compact .primary-action {
   min-height:44px;
   font-size:14px;
+}
+
+@media(max-width:900px) {
+  .account-boundary { grid-template-columns:1fr; }
+  .account-boundary>div+div {
+    border-left:0;
+    border-top:1px solid #b9c8ba;
+  }
 }
 
 @media(max-width:620px) {

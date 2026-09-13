@@ -6,7 +6,7 @@ export function getIndexAccessNoticeCopy(authenticated: boolean, access: Account
   if (!authenticated) {
     return {
       title: 'Accedi per usare tutti i servizi',
-      description: 'Stai visualizzando l’indice pubblico con 7 giorni di ritardo.',
+      description: 'Senza account puoi consultare l’indice da D-28 a D-7 e i dati meteo e del terreno.',
       action: 'Accedi o registrati',
     };
   }
@@ -20,7 +20,7 @@ export function getIndexAccessNoticeCopy(authenticated: boolean, access: Account
   if (access.account_state === 'deletion_pending') {
     return {
       title: 'Account in eliminazione',
-      description: 'Le funzioni riservate non sono più disponibili mentre la cancellazione è in corso.',
+      description: 'Restano disponibili indice pubblico, meteo, terreno e documenti. Le funzioni dell’account sono bloccate mentre la cancellazione è in corso.',
       action: 'Controlla lo stato',
     };
   }
@@ -29,13 +29,13 @@ export function getIndexAccessNoticeCopy(authenticated: boolean, access: Account
     case 'terms_refused':
       return {
         title: 'Aggiorna i documenti del tuo account',
-        description: 'Accetta i Termini correnti per riattivare l’accesso completo a FunghiTracker.',
+        description: 'Indice aggiornato, analisi e archivio cloud sono bloccati. Accetta i Termini correnti per riattivare l’accesso completo.',
         action: 'Leggi e accetta i documenti',
       };
     case 'inactive':
       return {
         title: 'Riattiva il tuo account',
-        description: 'L’account è limitato per inattività. Apri il profilo per registrarne la riattivazione e controllare i documenti.',
+        description: 'Indice aggiornato, analisi e archivio cloud sono bloccati per inattività. Apri il profilo per verificare la riattivazione.',
         action: 'Apri il profilo',
       };
     case 'security':
@@ -90,7 +90,7 @@ export function IndexAccessNotice(props: {
         </div>
         <div className="index-access-actions">
           <button className="index-access-primary" type="button" onClick={props.onAction}>{copy.action}<span aria-hidden="true">→</span></button>
-          <button type="button" onClick={props.onClose}>Continua con l’indice pubblico</button>
+          <button type="button" onClick={props.onClose}>Continua con l’indice D-28–D-7</button>
         </div>
       </section>
     </div>

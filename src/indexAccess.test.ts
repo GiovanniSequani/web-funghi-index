@@ -3,7 +3,7 @@ import { filterTileSetsForIndexAccess, selectLimitedIndexDay } from './indexAcce
 import type { IndexHistoryPointData } from './indexData/historyTypes';
 
 describe('accesso indice', () => {
-  it('limita le tiles a D-27..D-7 e mantiene tutte le versioni ammesse', () => {
+  it('limita le tiles a D-28..D-7 e mantiene tutte le versioni ammesse', () => {
     const tiles = [
       { date: '2026-09-07', version: '2' },
       { date: '2026-09-07', version: '1' },
@@ -12,12 +12,14 @@ describe('accesso indice', () => {
       { date: '2026-08-31', version: '1' },
       { date: '2026-08-11', version: '1' },
       { date: '2026-08-10', version: '1' },
+      { date: '2026-08-09', version: '1' },
     ];
 
     expect(filterTileSetsForIndexAccess(tiles, false)).toEqual([
       { date: '2026-08-31', version: '2' },
       { date: '2026-08-31', version: '1' },
       { date: '2026-08-11', version: '1' },
+      { date: '2026-08-10', version: '1' },
     ]);
     expect(filterTileSetsForIndexAccess(tiles, true)).toBe(tiles);
   });

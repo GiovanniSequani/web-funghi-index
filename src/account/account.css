@@ -1359,6 +1359,16 @@
   line-height: 1.55;
 }
 
+.lifecycle-availability {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid #6c8a70;
+  color: #aebcab;
+  background: #152018;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .lifecycle-deadline {
   padding: 10px 11px;
   border-left: 3px solid #d7a752;

@@ -568,6 +568,7 @@ function App() {
         <a href="/termini/">Termini</a>
         <a href="/privacy/">Privacy</a>
         <a href="/account-e-dati/">Account e dati</a>
+        <a href="/elimina-account/">Elimina account</a>
       </nav>
       <a className="app-banner" href="/" aria-label="Torna alla home di FunghiTracker">
         <span>FunghiTracker</span>
@@ -857,7 +858,7 @@ function App() {
               : `${availableDates.length} date in archivio`}
         </div>
         {!fullIndexAccess && !tilesLoading && !tilesError && (
-          <p className="index-access-note">Indice pubblico con 7 giorni di ritardo.</p>
+          <p className="index-access-note">Indice pubblico disponibile da D-28 a D-7.</p>
         )}
         {tilesError && <p className="error-text">{tilesError}</p>}
 

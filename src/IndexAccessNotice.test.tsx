@@ -18,7 +18,10 @@ describe('IndexAccessNotice', () => {
   it('indica login e registrazione ai visitatori', () => {
     render(<IndexAccessNotice authenticated={false} access={null} onClose={() => undefined} onAction={() => undefined} />);
     expect(screen.getByRole('heading').textContent).toContain('Accedi');
+    expect(screen.getByText(/D-28 a D-7/)).toBeTruthy();
+    expect(screen.getByText(/dati meteo e del terreno/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Accedi o registrati/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Continua con l.indice D-28.D-7/ })).toBeTruthy();
   });
 
   it('indirizza gli account con termini obsoleti alla riaccettazione', () => {

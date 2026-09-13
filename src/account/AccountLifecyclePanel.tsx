@@ -24,6 +24,17 @@ function formatDate(value: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : dateFormatter.format(date);
 }
 
+function availabilityCopy(access: AccountAccess | null): string | null {
+  if (!access) return null;
+  if (access.account_state === 'deletion_pending') {
+    return 'Restano disponibili indice pubblico D-28–D-7, meteo, terreno, documenti e stato della richiesta. Indice aggiornato, analisi, export e archivio GPX sono bloccati.';
+  }
+  if (access.account_state === 'restricted') {
+    return 'Restano disponibili indice pubblico D-28–D-7, meteo, terreno, documenti, export e cancellazione. Indice aggiornato, analisi e archivio GPX sono bloccati.';
+  }
+  return null;
+}
+
 function stateCopy(access: AccountAccess | null): {
   eyebrow: string;
   title: string;
@@ -148,6 +159,7 @@ export function AccountLifecyclePanel(props: {
 
   const deadline = formatDate(props.access?.legal_reaccept_deadline_at ?? null);
   const inactivityDeleteAfter = formatDate(props.access?.inactivity_delete_after ?? null);
+  const availability = availabilityCopy(props.access);
 
   return (
     <section className={'lifecycle-panel tone-' + copy.tone} aria-labelledby="lifecycle-title">
@@ -162,6 +174,7 @@ export function AccountLifecyclePanel(props: {
       </header>
 
       <p className="lifecycle-description">{copy.description}</p>
+      {availability && <p className="lifecycle-availability">{availability}</p>}
       {deadline && <p className="lifecycle-deadline"><Clock3 size={16} aria-hidden="true" /> Accetta entro il {deadline}.</p>}
       {inactivityDeleteAfter && <p className="lifecycle-deadline"><Clock3 size={16} aria-hidden="true" /> Eliminazione prevista non prima del {inactivityDeleteAfter}, salvo nuova attività valida.</p>}
       {(props.error || localError) && <p className="account-message error" role="alert">{localError ?? props.error}</p>}

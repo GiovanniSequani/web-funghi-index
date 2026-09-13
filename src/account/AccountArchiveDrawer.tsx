@@ -624,7 +624,7 @@ export function AccountArchiveDrawer(props: {
             <section className="account-intro">
               <span className="account-intro-icon" aria-hidden="true"><UserRound size={30} /></span>
               <h2>Accesso completo a FunghiTracker</h2>
-              <p>Indice aggiornato, analisi del punto e archivio personale in un unico account.</p>
+              <p>Un account attivo abilita indice aggiornato, analisi del punto e archivio cloud.</p>
               <ul className="account-benefits">
                 <li><CalendarDays size={18} aria-hidden="true" /><span><strong>Indice aggiornato</strong>Vedi l’ultimo giorno disponibile, senza il ritardo di 7 giorni.</span></li>
                 <li><MapPinned size={18} aria-hidden="true" /><span><strong>Analisi del punto</strong>Leggi i fattori favorevoli e sfavorevoli dell’indice.</span></li>

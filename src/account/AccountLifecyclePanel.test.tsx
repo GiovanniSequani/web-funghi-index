@@ -68,6 +68,13 @@ describe('AccountLifecyclePanel', () => {
     expect(screen.getByText('Account in eliminazione')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Accetta e riattiva' })).toBeNull();
     expect(screen.getByText('Diritti deletion_pending')).toBeTruthy();
+    expect(screen.getByText(/export e archivio GPX sono bloccati/)).toBeTruthy();
+  });
+
+  it('spiega cosa resta disponibile per un account ristretto', () => {
+    renderPanel(access);
+    expect(screen.getByText(/documenti, export e cancellazione/)).toBeTruthy();
+    expect(screen.getByText(/Indice aggiornato, analisi e archivio GPX sono bloccati/)).toBeTruthy();
   });
 
   it('inoltra il comando Esci anche dalla schermata di riaccettazione', async () => {

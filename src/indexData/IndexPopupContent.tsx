@@ -89,7 +89,7 @@ export function IndexPopupContent(props: {
                 <strong>{scoreLabel(finferliScore)}</strong>
               </div>
             </div>
-            {!props.fullIndexAccess && <p className="coordinate-index-access-note">Indice pubblico con 7 giorni di ritardo.</p>}
+            {!props.fullIndexAccess && <p className="coordinate-index-access-note">Indice pubblico disponibile da D-28 a D-7.</p>}
             {porciniScore === null && finferliScore === null && (
               <p>Nessun valore disponibile per questa cella.</p>
             )}

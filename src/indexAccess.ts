@@ -2,7 +2,7 @@ import type { IndexHistoryDay, IndexHistoryPointData } from './indexData/history
 import type { TileSet } from './types';
 
 const LIMITED_DELAY_DAYS = 7;
-const HISTORY_WINDOW_DAYS = 27;
+const HISTORY_WINDOW_DAYS = 28;
 
 function parseDate(value: string): Date | null {
   const normalized = value.replace(/_/g, '-');
