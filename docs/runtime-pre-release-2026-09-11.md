@@ -1,4 +1,4 @@
-# Runtime pre-release web verification — 11 September 2026
+# Runtime pre-release web verification — 11-13 September 2026
 
 Target: `https://web-funghi-index.pages.dev`
 
@@ -9,11 +9,10 @@ written to this repository or included in the test output.
 
 ## Result
 
-The Auth callbacks, public account routes, lifecycle state transitions, and RLS
-isolation for profiles and exports passed. The GPX archive is **blocked in the
-production backend** for authenticated active accounts by a database permission
-error described below. This runtime check therefore does not approve the GPX
-archive for release.
+The Auth callbacks, public account routes, lifecycle state transitions, export,
+and two-account RLS/Storage isolation passed. The GPX blocker found on 11
+September was corrected by the backend and the complete archive flow passed on
+13 September after backend fix `8d63055`. AND-REL-001 is complete.
 
 ## Auth and callbacks
 
@@ -43,31 +42,41 @@ contexts.
   rendering the private archive contents.
 - PASS — export requests were accepted for active and restricted disposable
   accounts, consistently with the published account-rights contract.
-- PASS — a deletion-verification email could be requested after explicit UI
-  confirmation. The one-time link was deliberately not opened, so no deletion
-  was scheduled or completed.
-- NOT EXECUTED — `deletion_pending` was not created at runtime because reaching
-  that state requires confirming the irreversible deletion flow. Its frontend
-  behavior remains covered by the automated test suite.
+- PASS — a disposable restricted account requested deletion verification, the
+  backend pipeline delivered the one-time email, and an explicit browser click
+  moved it to `deletion_pending`. GPX rows, markers, and the private Storage
+  object remained inaccessible. The final deletion job was not executed.
 
-## GPX archive blocker
+## GPX archive follow-up — AND-REL-001
 
-Both active disposable accounts received the following backend response while
-loading their own archive:
+The 13 September follow-up used two new disposable accounts, two synthetic GPX
+files, unique cache-busting Storage requests, and `Cache-Control: no-cache,
+no-store`.
 
-```text
-permission denied for function has_current_contributor_access
-```
+- PASS — active owner reservation, authenticated Storage upload, finalization,
+  admission to `ready`, archive listing, private download, and marker save/read.
+- PASS — the published map downloaded the private GPX with the user's session,
+  loaded the MapLibre worker, and rendered the line, endpoint markers, and a
+  porcini marker at its actual GPX point index.
+- PASS — the second active account could not read the owner's GPX metadata,
+  marker, profile/lifecycle fields, export job, or Storage object.
+- PASS — after the second account became `restricted`, its own GPX rows and
+  markers were hidden and direct Storage download was denied. Export request
+  remained available as required by the rights contract.
+- PASS — after explicit email confirmation changed that account to
+  `deletion_pending`, direct Storage download and GPX/marker reads remained
+  denied. No final account deletion was run.
+- PASS — active and restricted export requests, owner-only export visibility,
+  and lifecycle access RPCs showed no regression.
 
-This occurs before the frontend can upload or read an account's own GPX data.
-Consequently, owner access and cross-account isolation for GPX rows, marker
-rows, and private Storage objects could not be exercised end to end. Profile,
-lifecycle, and export isolation do not show the same failure.
+The web client uses authenticated
+`supabase.storage.from('user-gpx').download(storage_path)` and keeps only the
+temporary object URL required by a browser download, revoking it immediately.
+It does not create or retain a signed GPX URL.
 
-The error points to database function execution/policy configuration. It must
-be corrected and redeployed by the backend/Supabase owner, then the two-account
-GPX runtime checks must be repeated. The web frontend must not bypass or hide
-this server-side authorization gate.
+The earlier `permission denied for function has_current_contributor_access`
+error and the restricted-account Storage leak are retained here as historical
+findings; neither reproduced after the backend fixes.
 
 ## Public routes and response headers
 
@@ -85,12 +94,8 @@ Direct HTTPS responses for `/`, all four public routes, `/auth/confirm`, and
 `Referrer-Policy: no-referrer`. Normal public pages retained their non-sensitive
 cache/referrer policy.
 
-## Follow-up release gate
+## Release-gate conclusion
 
-1. Grant the intended authenticated role access to the backend helper used by
-   the GPX RLS policies, without weakening row ownership checks.
-2. Repeat own-account archive load/upload/download and cross-account row,
-   marker, and Storage denial checks with two new disposable accounts.
-3. Keep deletion confirmation outside this non-destructive pre-release check;
-   validate `deletion_pending` only in an explicitly approved disposable-account
-   cleanup exercise.
+AND-REL-001 is complete. This result closes only the web GPX/archive runtime
+item; other Android signing, configuration, and release-roadmap gates retain
+their own evidence requirements.

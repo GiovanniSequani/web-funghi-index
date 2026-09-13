@@ -149,8 +149,11 @@ export async function loadArchiveData(
   };
 }
 
-export async function downloadTrack(track: GpxTrack): Promise<Blob> {
-  const { data, error } = await getAccountSupabaseClient().storage.from('user-gpx').download(track.storage_path);
+export async function downloadTrack(
+  track: GpxTrack,
+  supabase: SupabaseClient = getAccountSupabaseClient(),
+): Promise<Blob> {
+  const { data, error } = await supabase.storage.from('user-gpx').download(track.storage_path);
   if (error) throw toAccountError(error);
   return data;
 }

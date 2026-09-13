@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteTrack, deleteTrackMarker, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, requestPasswordReset, signUp, uploadPreparedTrack } from './client';
+import { deleteTrack, deleteTrackMarker, downloadTrack, loadArchiveData, saveTrackMarker, setTrackTrim, renameTrack, requestPasswordReset, signUp, uploadPreparedTrack } from './client';
 import type { GpxTrack, PreparedGpxUpload } from './types';
 import { LEGACY_LIFECYCLE_CONFIG } from './lifecycle';
 
@@ -103,6 +103,18 @@ describe('account Supabase client', () => {
     expect(remove).toHaveBeenCalledWith([track.storage_path]);
     expect(rpc).toHaveBeenCalledWith('delete_my_gpx_track_metadata', { p_track_id: track.id });
     expect(order).toEqual(['storage', 'metadata']);
+  });
+
+  it('scarica il GPX privatamente senza creare o conservare URL firmati', async () => {
+    const blob = new Blob(['gpx']);
+    const download = vi.fn().mockResolvedValue({ data: blob, error: null });
+    const from = vi.fn(() => ({ download }));
+    const supabase = { storage: { from } } as unknown as SupabaseClient;
+
+    await expect(downloadTrack(track, supabase)).resolves.toBe(blob);
+
+    expect(from).toHaveBeenCalledWith('user-gpx');
+    expect(download).toHaveBeenCalledWith(track.storage_path);
   });
 
   it('se la RPC fallisce segnala una cancellazione parziale ritentabile', async () => {
