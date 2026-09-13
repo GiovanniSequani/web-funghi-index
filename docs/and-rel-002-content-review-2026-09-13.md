@@ -15,13 +15,14 @@ I gate applicativi restano server-authoritative: i testi non sostituiscono RLS, 
 
 ## Verifiche documentali
 
-- I documenti web `terms-of-use.md`, `privacy-policy.md` e `account-and-data.md` sono byte per byte identici alle copie approvate in `docs/legal/` del repository applicativo.
+- I documenti web `terms-of-use.md` e `privacy-policy.md` sono byte per byte identici alle copie approvate in `docs/legal/` del repository applicativo.
+- In `account-and-data.md` è stata applicata esclusivamente la sostituzione editoriale approvata relativa ai collegamenti ormai pubblicati.
 - Termini e Privacy Policy non sono stati modificati.
 - Tutte le pagine pubbliche mantengono link a Termini, Privacy Policy, Account e dati ed Elimina account.
 
-## Incongruenza editoriale non modificata
+## Stato
 
-Il documento approvato **Account e dati** contiene ancora la frase “I link definitivi verranno inseriti quando le pagine saranno pubblicate”, anche se le pagine ora sono pubbliche. Non altera diritti o gate applicativi, ma richiede approvazione del responsabile legale prima di un'eventuale correzione.
+AND-REL-002 è completato. L'incongruenza editoriale in **Account e dati** è stata corretta dopo approvazione esplicita, senza modificare Termini, Privacy Policy, versioni legali o comportamento applicativo.
 
 ## Correzioni web
 

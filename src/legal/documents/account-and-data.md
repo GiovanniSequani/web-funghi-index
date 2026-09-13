@@ -87,4 +87,4 @@ Puoi presentare reclamo al
 - Informativa privacy
 - Termini di utilizzo
 
-I link definitivi verranno inseriti quando le pagine saranno pubblicate.
+I documenti e le funzioni per la gestione dell’account e dei dati sono disponibili tramite i collegamenti indicati in questa pagina.
