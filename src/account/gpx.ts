@@ -3,9 +3,13 @@ import { AccountArchiveError, type ArchiveConfig, type GpxMapData, type Prepared
 
 const EARTH_RADIUS_M = 6_371_000;
 const INPUT_CHUNK_BYTES = 4 * 1024;
+const RAW_INPUT_CHUNK_BYTES = 64 * 1024;
 const MAX_XML_ELEMENTS = 350_000;
 const MAX_TRACK_POINTS = 250_000;
 const MAX_WAYPOINTS = 50_000;
+const MAX_XML_DEPTH = 128;
+const MAX_XML_TOKEN_CHARS = 64 * 1024;
+const MAX_XML_TEXT_CHARS = 1024 * 1024;
 const PARSE_TIME_BUDGET_MS = 5_000;
 type GpxLimits = Pick<ArchiveConfig, 'max_compressed_bytes' | 'max_uncompressed_bytes'>;
 const CRC32_TABLE = Uint32Array.from({ length: 256 }, (_, value) => {
@@ -29,22 +33,179 @@ function compress(bytes: Uint8Array): Promise<Uint8Array> {
   return new Promise((resolve, reject) => gzip(bytes, { level: 6 }, (error, result) => error ? reject(error) : resolve(result)));
 }
 
+class GpxXmlPreflight {
+  private readonly decoder = new TextDecoder('utf-8', { fatal: true });
+  private pending = '';
+  private textRun = 0;
+  private elementCount = 0;
+  private trackPointCount = 0;
+  private waypointCount = 0;
+  private depth = 0;
+  private rootSeen = false;
+
+  push(bytes: Uint8Array, final = false): void {
+    let text: string;
+    try {
+      text = this.decoder.decode(bytes, { stream: !final });
+    } catch (cause) {
+      throw new AccountArchiveError('invalid_gpx', 'Il GPX non usa una codifica UTF-8 valida.', { cause });
+    }
+    this.inspect(text, final);
+  }
+
+  private inspect(text: string, final: boolean): void {
+    this.pending += text;
+    while (this.pending.length > 0) {
+      if (this.pending[0] !== '<') {
+        const next = this.pending.indexOf('<');
+        const consumed = next === -1 ? this.pending.length : next;
+        this.textRun += consumed;
+        if (this.textRun > MAX_XML_TEXT_CHARS) this.rejectComplexity();
+        this.pending = this.pending.slice(consumed);
+        if (next === -1) break;
+      }
+
+      this.textRun = 0;
+      const end = this.findMarkupEnd(this.pending);
+      if (end === null) {
+        if (this.pending.length > MAX_XML_TOKEN_CHARS) this.rejectComplexity();
+        break;
+      }
+      const markup = this.pending.slice(0, end);
+      this.pending = this.pending.slice(end);
+      this.inspectMarkup(markup);
+    }
+
+    if (final) {
+      if (this.pending.trim()) {
+        throw new AccountArchiveError('invalid_gpx', 'Il contenuto XML del GPX è incompleto o non valido.');
+      }
+      if (!this.rootSeen || this.depth !== 0) {
+        throw new AccountArchiveError('invalid_gpx', 'Il file non contiene un documento GPX valido.');
+      }
+    }
+  }
+
+  private findMarkupEnd(value: string): number | null {
+    if (value.startsWith('<!--')) {
+      const end = value.indexOf('-->');
+      return end === -1 ? null : end + 3;
+    }
+    if (value.startsWith('<![CDATA[')) {
+      const end = value.indexOf(']]>');
+      return end === -1 ? null : end + 3;
+    }
+    if (value.startsWith('<?')) {
+      const end = value.indexOf('?>');
+      return end === -1 ? null : end + 2;
+    }
+    if (value.length < 2) return null;
+
+    let quote: '"' | "'" | null = null;
+    for (let index = 1; index < value.length; index += 1) {
+      const character = value[index];
+      if (quote) {
+        if (character === quote) quote = null;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === '>') {
+        return index + 1;
+      }
+    }
+    return null;
+  }
+
+  private inspectMarkup(markup: string): void {
+    if (/^<!\s*(?:DOCTYPE|ENTITY)\b/i.test(markup)) {
+      throw new AccountArchiveError('invalid_gpx', 'Il GPX contiene una dichiarazione DTD o ENTITY non consentita.');
+    }
+    if (markup.startsWith('<!--') || markup.startsWith('<?')) return;
+    if (markup.startsWith('<![CDATA[')) {
+      if (!this.rootSeen) throw new AccountArchiveError('invalid_gpx', 'Il file non contiene un documento GPX valido.');
+      return;
+    }
+    if (markup.startsWith('<!')) {
+      throw new AccountArchiveError('invalid_gpx', 'Il GPX contiene una dichiarazione XML non consentita.');
+    }
+
+    const closing = /^<\s*\//.test(markup);
+    const selfClosing = /\/\s*>$/.test(markup);
+    const name = markup.match(/^<\s*\/?\s*(?:[\w.-]+:)?([\w.-]+)/)?.[1]?.toLowerCase();
+    if (!name) throw new AccountArchiveError('invalid_gpx', 'Il contenuto XML del GPX non è valido.');
+
+    if (closing) {
+      this.depth -= 1;
+      if (this.depth < 0) throw new AccountArchiveError('invalid_gpx', 'Il contenuto XML del GPX non è valido.');
+      return;
+    }
+
+    if (!this.rootSeen) {
+      if (name !== 'gpx') throw new AccountArchiveError('invalid_gpx', 'Il file non contiene un documento GPX valido.');
+      this.rootSeen = true;
+    }
+    this.elementCount += 1;
+    if (this.elementCount > MAX_XML_ELEMENTS) this.rejectComplexity('Il GPX contiene troppi elementi.');
+    if (name === 'trkpt' || name === 'rtept') {
+      this.trackPointCount += 1;
+      if (this.trackPointCount > MAX_TRACK_POINTS) this.rejectComplexity('La traccia contiene troppi punti GPS.');
+    } else if (name === 'wpt') {
+      this.waypointCount += 1;
+      if (this.waypointCount > MAX_WAYPOINTS) this.rejectComplexity('Il GPX contiene troppi ritrovamenti.');
+    }
+    if (!selfClosing) {
+      this.depth += 1;
+      if (this.depth > MAX_XML_DEPTH) this.rejectComplexity();
+    }
+  }
+
+  private rejectComplexity(message = 'Il GPX è troppo complesso da elaborare nel browser.'): never {
+    throw new AccountArchiveError('invalid_gpx', message);
+  }
+}
+
+async function preflightRawBlob(blob: Blob): Promise<void> {
+  const scanner = new GpxXmlPreflight();
+  for (let offset = 0; offset < blob.size; offset += RAW_INPUT_CHUNK_BYTES) {
+    const end = Math.min(blob.size, offset + RAW_INPUT_CHUNK_BYTES);
+    scanner.push(new Uint8Array(await blob.slice(offset, end).arrayBuffer()));
+  }
+  scanner.push(new Uint8Array(), true);
+}
+
 async function readRawBlob(blob: Blob, maximum: number): Promise<Uint8Array> {
   assertSize(blob.size, maximum, 'Il GPX non compresso supera il limite configurato.');
+  await preflightRawBlob(blob);
   return new Uint8Array(await blob.arrayBuffer());
 }
 
 async function decompressBlob(blob: Blob, limits: GpxLimits): Promise<Uint8Array> {
   assertSize(blob.size, limits.max_compressed_bytes, 'Il file compresso supera il limite configurato.');
+  if (blob.size < 18) throw new AccountArchiveError('invalid_gpx', 'Il file gzip è troncato o non valido.');
+  const header = new Uint8Array(await blob.slice(0, 10).arrayBuffer());
+  if (header[0] !== 0x1f || header[1] !== 0x8b || header[2] !== 8 || (header[3] & 0xe0) !== 0) {
+    throw new AccountArchiveError('invalid_gpx', 'Il file non contiene un archivio gzip valido.');
+  }
+  const trailer = new DataView(await blob.slice(blob.size - 8).arrayBuffer());
+  const expectedCrc = trailer.getUint32(0, true);
+  const expectedSize = trailer.getUint32(4, true);
+  assertSize(expectedSize, limits.max_uncompressed_bytes, 'Il GPX compresso dichiara una dimensione oltre il limite oppure è danneggiato.');
+
   const chunks: Uint8Array[] = [];
+  const scanner = new GpxXmlPreflight();
   let outputBytes = 0;
   let crc32 = 0xffffffff;
   let extraMember = false;
   const stream = new Gunzip((chunk) => {
-    outputBytes += chunk.byteLength;
-    assertSize(outputBytes, limits.max_uncompressed_bytes, 'Il GPX non compresso supera il limite configurato.');
+    if (extraMember) throw new AccountArchiveError('invalid_gpx', 'Gli archivi gzip con più contenuti non sono supportati.');
+    const nextOutputBytes = outputBytes + chunk.byteLength;
+    assertSize(nextOutputBytes, limits.max_uncompressed_bytes, 'Il GPX non compresso supera il limite configurato.');
+    if (nextOutputBytes > expectedSize) {
+      throw new AccountArchiveError('invalid_gpx', 'Il file gzip dichiara una dimensione non coerente con il contenuto.');
+    }
+    scanner.push(chunk);
     for (const byte of chunk) crc32 = CRC32_TABLE[(crc32 ^ byte) & 0xff] ^ (crc32 >>> 8);
     chunks.push(chunk);
+    outputBytes = nextOutputBytes;
   });
   stream.onmember = () => { extraMember = true; };
 
@@ -60,10 +221,7 @@ async function decompressBlob(blob: Blob, limits: GpxLimits): Promise<Uint8Array
   }
 
   if (extraMember) throw new AccountArchiveError('invalid_gpx', 'Gli archivi gzip con più contenuti non sono supportati.');
-  if (blob.size < 18) throw new AccountArchiveError('invalid_gpx', 'Il file gzip è troncato o non valido.');
-  const trailer = new DataView(await blob.slice(blob.size - 8).arrayBuffer());
-  const expectedCrc = trailer.getUint32(0, true);
-  const expectedSize = trailer.getUint32(4, true);
+  scanner.push(new Uint8Array(), true);
   if (((crc32 ^ 0xffffffff) >>> 0) !== expectedCrc || outputBytes !== expectedSize) {
     throw new AccountArchiveError('invalid_gpx', 'Il file gzip è troncato o non supera il controllo di integrità.');
   }
@@ -196,8 +354,8 @@ export async function prepareImportedGpx(file: File, config: ArchiveConfig): Pro
   let compressed: Uint8Array;
   try {
     if (gzipEncoded) {
-      compressed = await readRawBlob(file, config.max_compressed_bytes);
       raw = await decompressBlob(file, config);
+      compressed = new Uint8Array(await file.arrayBuffer());
     } else {
       raw = await readRawBlob(file, config.max_uncompressed_bytes);
       compressed = await compress(raw);

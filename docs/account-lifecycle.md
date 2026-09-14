@@ -85,9 +85,12 @@ matching, terms notice timing, and deletion-pending UI.
 
 The web remediation for SEC-AUD-006, SEC-AUD-010, SEC-AUD-015 and the web
 part of SEC-AUD-018 is implemented. GPX import and cloud rendering check the
-server-published size limits before full reads, use capped gzip streaming with
-integrity checks, and reject DTD/ENTITY, malformed, multi-member, oversized,
-or anomalous files before map rendering. MapLibre is pinned to 6.4.1 and the
+server-published size limits before full reads. Raw XML receives an incremental
+complexity preflight before `arrayBuffer()` and `DOMParser`; gzip input receives
+header and ISIZE checks before bounded streaming decompression, followed by the
+same incremental XML preflight. DTD/ENTITY, malformed, multi-member, oversized,
+or anomalous files are rejected before map rendering. MapLibre is pinned to
+6.4.1 and the
 application keeps static attributions plus React DOM popups. HSTS is applied
 globally, while both deletion-route spellings use no-store/no-referrer.
 

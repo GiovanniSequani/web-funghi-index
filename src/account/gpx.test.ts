@@ -33,12 +33,48 @@ describe('GPX cloud map data', () => {
     expect(data.usesTrackPoints).toBe(true);
   });
 
+  it('mantiene il normale flusso di upload per un GPX gzip valido', async () => {
+    const xml = '<gpx><trk><name>Uscita</name><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.1" lon="11.1"/></trkseg></trk></gpx>';
+    const compressed = gzipSync(strToU8(xml));
+    const prepared = await prepareImportedGpx(
+      new File([compressed], 'uscita.gpx.gz', { type: 'application/gzip' }),
+      limits,
+    );
+
+    expect(prepared.pointCount).toBe(2);
+    expect(prepared.uncompressedSizeBytes).toBe(strToU8(xml).byteLength);
+    expect(prepared.compressedSizeBytes).toBe(compressed.byteLength);
+    expect(prepared.suggestedName).toBe('Uscita');
+  });
+
   it('rifiuta il file locale oltre il limite prima di leggerlo', async () => {
     const file = new File(['0123456789'], 'troppo-grande.gpx', { type: 'application/gpx+xml' });
     const read = vi.spyOn(file, 'arrayBuffer');
     await expect(prepareImportedGpx(file, { ...limits, max_uncompressed_bytes: 5 }))
       .rejects.toMatchObject({ code: 'size_exceeded' });
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it('rifiuta anche un gzip locale oltre soglia prima di leggerne il contenuto', async () => {
+    const file = new File([new Uint8Array(20)], 'troppo-grande.gpx.gz', { type: 'application/gzip' });
+    const read = vi.spyOn(file, 'arrayBuffer');
+    const slice = vi.spyOn(file, 'slice');
+    await expect(prepareImportedGpx(file, { ...limits, max_compressed_bytes: 10 }))
+      .rejects.toMatchObject({ code: 'size_exceeded' });
+    expect(read).not.toHaveBeenCalled();
+    expect(slice).not.toHaveBeenCalled();
+  });
+
+  it('usa ISIZE per rifiutare una forte espansione prima della decompressione', async () => {
+    const valid = gzipSync(strToU8('<gpx><trk><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.1" lon="11.1"/></trkseg></trk></gpx>'));
+    const forged = valid.slice();
+    new DataView(forged.buffer, forged.byteOffset + forged.byteLength - 4, 4).setUint32(0, 50_000, true);
+    const blob = new Blob([forged], { type: 'application/gzip' });
+    const slice = vi.spyOn(blob, 'slice');
+
+    await expect(decodeCloudGpx(blob, 'espansione.gpx.gz', { ...limits, max_uncompressed_bytes: 1_000 }))
+      .rejects.toMatchObject({ code: 'size_exceeded' });
+    expect(slice).toHaveBeenCalledTimes(2);
   });
 
   it('interrompe una decompressione che supera il limite non compresso', async () => {
@@ -52,8 +88,35 @@ describe('GPX cloud map data', () => {
     ['DOCTYPE', '<!DOCTYPE gpx><gpx><trk><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.1" lon="11.1"/></trkseg></trk></gpx>'],
     ['ENTITY', '<!DOCTYPE gpx [<!ENTITY x "test">]><gpx><trk><trkseg><trkpt lat="46" lon="11"/><trkpt lat="46.1" lon="11.1"/></trkseg></trk></gpx>'],
   ])('rifiuta dichiarazioni XML %s', async (_label, xml) => {
-    await expect(decodeCloudGpx(new Blob([xml]), 'input.gpx', limits))
-      .rejects.toThrow(/DTD o ENTITY/);
+    const parse = vi.spyOn(DOMParser.prototype, 'parseFromString');
+    try {
+      await expect(decodeCloudGpx(new Blob([xml]), 'input.gpx', limits))
+        .rejects.toThrow(/DTD o ENTITY/);
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it('rifiuta XML con profondità anomala prima di costruire il DOM', async () => {
+    const xml = `<gpx>${'<extensions>'.repeat(129)}${'</extensions>'.repeat(129)}</gpx>`;
+    const parse = vi.spyOn(DOMParser.prototype, 'parseFromString');
+    try {
+      await expect(decodeCloudGpx(new Blob([xml]), 'profondo.gpx', limits))
+        .rejects.toThrow(/troppo complesso/);
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it('rifiuta un falso gzip dalla sola intestazione', async () => {
+    const invalid = new Uint8Array(18);
+    invalid[0] = 0x1f;
+    invalid[1] = 0x8b;
+    invalid[2] = 0;
+    await expect(decodeCloudGpx(new Blob([invalid], { type: 'application/gzip' }), 'corrotto.gpx.gz', limits))
+      .rejects.toThrow(/archivio gzip valido/);
   });
 
   it('rifiuta gzip concatenati e archivi troncati', async () => {
@@ -65,7 +128,7 @@ describe('GPX cloud map data', () => {
     await expect(decodeCloudGpx(new Blob([joined], { type: 'application/gzip' }), 'multi.gpx.gz', limits))
       .rejects.toThrow(/più contenuti/);
     await expect(decodeCloudGpx(new Blob([first.slice(0, -5)], { type: 'application/gzip' }), 'troncato.gpx.gz', limits))
-      .rejects.toMatchObject({ code: 'invalid_gpx' });
+      .rejects.toThrow(/limite|danneggiato|troncato/);
   });
 
   it('rifiuta root e coordinate anomale', async () => {
