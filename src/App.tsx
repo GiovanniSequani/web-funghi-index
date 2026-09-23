@@ -3,11 +3,11 @@ import { createRoot } from 'react-dom/client';
 import * as maplibregl from 'maplibre-gl';
 import { type GeoJSONSource, type Map, type MapMouseEvent } from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Pencil, Plus, RefreshCw, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleUserRound, Compass, Crosshair, Eye, EyeOff, Layers, LocateFixed, Minus, PanelLeftClose, Palette, Plus, RefreshCw, X } from 'lucide-react';
 import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
 import { formatTrackDate, getTrackDateIso } from './account/trackDate';
-import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditable } from './account/trackEditing';
+import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox } from './account/trackEditing';
 import { clusterMushroomFeatures } from './account/mushroomClusters';
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
@@ -34,11 +34,43 @@ const GPX_EXCLUDED_LAYER_ID = 'cloud-gpx-excluded';
 const GPX_OUTLINE_LAYER_ID = 'cloud-gpx-outline';
 const GPX_LAYER_ID = 'cloud-gpx-line';
 const GPX_CLOUD_MARKERS_LAYER_ID = 'cloud-gpx-cloud-markers';
+const GPX_MIXED_MARKER_LAYER_ID = 'cloud-gpx-mixed-markers';
 const GPX_CLOUD_MARKER_LABELS_LAYER_ID = 'cloud-gpx-cloud-marker-labels';
+const GPX_MIXED_PORCINI_LABELS_LAYER_ID = 'cloud-gpx-mixed-porcini-labels';
+const GPX_MIXED_FINFELLI_LABELS_LAYER_ID = 'cloud-gpx-mixed-finferli-labels';
 const GPX_SELECTED_POINT_LAYER_ID = 'cloud-gpx-selected-point';
 const GPX_ENDPOINTS_LAYER_ID = 'cloud-gpx-endpoints';
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
+
+function ensureMixedMushroomMarkerImage(map: Map) {
+  const imageId = 'cloud-gpx-mixed-mushroom-marker';
+  const canvas = document.createElement('canvas');
+  canvas.width = 104;
+  canvas.height = 56;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  const drawCapsule = () => {
+    context.beginPath();
+    context.roundRect(4, 4, 96, 48, 24);
+  };
+  context.save();
+  drawCapsule();
+  context.clip();
+  context.fillStyle = '#8b5e3c';
+  context.fillRect(0, 0, 52, 56);
+  context.fillStyle = '#ffd21f';
+  context.fillRect(52, 0, 52, 56);
+  context.restore();
+  drawCapsule();
+  context.lineWidth = 3;
+  context.strokeStyle = '#fff';
+  context.stroke();
+  const image = context.getImageData(0, 0, 104, 56);
+  if (map.hasImage(imageId)) map.updateImage(imageId, image);
+  else map.addImage(imageId, image, { pixelRatio: 2 });
+  return imageId;
+}
 
 const OPACITY_STEPS = [25, 50, 75, 100] as const;
 function uniqueDates(tileSets: TileSet[]): string[] {
@@ -113,7 +145,7 @@ function App() {
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<Map | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
-  const [mapZoom, setMapZoom] = React.useState(9);
+  const [clusterZoom, setClusterZoom] = React.useState(9);
   const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
   const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
@@ -127,6 +159,7 @@ function App() {
   const [accessNoticeOpen, setAccessNoticeOpen] = React.useState(false);
   const accessNoticeKeyRef = React.useRef<string | null>(null);
   const [cloudTracks, setCloudTracks] = React.useState<CloudMapTrack[]>([]);
+  const [hiddenCloudTrackIds, setHiddenCloudTrackIds] = React.useState<Set<string>>(() => new Set());
   const [editingTrackId, setEditingTrackId] = React.useState<string | null>(null);
   const [selectedEditPointIndex, setSelectedEditPointIndex] = React.useState<number | null>(null);
   const cloudTracksRef = React.useRef<CloudMapTrack[]>([]);
@@ -267,12 +300,15 @@ function App() {
       attributionControl: { compact: true },
     });
 
-    const updateMapZoom = () => setMapZoom(map.getZoom());
+    const updateClusterZoom = () => {
+      const nextZoom = Math.floor(map.getZoom());
+      setClusterZoom((current) => current === nextZoom ? current : nextZoom);
+    };
     map.on('load', () => {
-      updateMapZoom();
+      updateClusterZoom();
       setMapReady(true);
     });
-    map.on('zoomend', updateMapZoom);
+    map.on('zoomend', updateClusterZoom);
     let suppressMapClickUntil = 0;
     const selectNearestEditingPoint = (screenPoint: { x: number; y: number }, threshold: number): boolean => {
       const trackId = editingTrackIdRef.current;
@@ -324,7 +360,7 @@ function App() {
 
     return () => {
       removeLongPress();
-      map.off('zoomend', updateMapZoom);
+      map.off('zoomend', updateClusterZoom);
       map.remove();
       mapRef.current = null;
     };
@@ -417,12 +453,16 @@ function App() {
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    const visibleCloudTracks = cloudTracks.filter((track) => !hiddenCloudTrackIds.has(track.id));
     const selectedEditingTrack = editingTrackId ? cloudTracks.find((track) => track.id === editingTrackId) : null;
     const selectedEditingCoordinate = selectedEditingTrack && selectedEditPointIndex !== null
       ? selectedEditingTrack.data.trackPoints.find((point) => point.pointIndex === selectedEditPointIndex)?.coordinate
       : undefined;
-    const trackFeatures = cloudTracks.flatMap((track, index) => buildTrackFeatures(track, index));
-    const mushroomMarkers = clusterMushroomFeatures(trackFeatures as Parameters<typeof clusterMushroomFeatures>[0], mapZoom);
+    // Keep each route's palette position stable while another route is hidden.
+    const trackFeatures = cloudTracks.flatMap((track, index) => (
+      hiddenCloudTrackIds.has(track.id) ? [] : buildTrackFeatures(track, index)
+    ));
+    const mushroomMarkers = clusterMushroomFeatures(trackFeatures as Parameters<typeof clusterMushroomFeatures>[0], clusterZoom);
     const collection: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: [
@@ -435,8 +475,8 @@ function App() {
         }] : []),
       ],
     };
-    const layerIds = [GPX_SELECTED_POINT_LAYER_ID, GPX_CLOUD_MARKER_LABELS_LAYER_ID, GPX_CLOUD_MARKERS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID, GPX_EXCLUDED_LAYER_ID];
-    if (cloudTracks.length === 0) {
+    const layerIds = [GPX_SELECTED_POINT_LAYER_ID, GPX_MIXED_FINFELLI_LABELS_LAYER_ID, GPX_MIXED_PORCINI_LABELS_LAYER_ID, GPX_CLOUD_MARKER_LABELS_LAYER_ID, GPX_MIXED_MARKER_LAYER_ID, GPX_CLOUD_MARKERS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID, GPX_EXCLUDED_LAYER_ID];
+    if (visibleCloudTracks.length === 0) {
       layerIds.forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(GPX_SOURCE_ID)) map.removeSource(GPX_SOURCE_ID);
       return;
@@ -449,15 +489,21 @@ function App() {
     map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': '#102016', 'line-width': 5, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
     map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 3, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
     const mushroomFilter: maplibregl.FilterSpecification = ['==', ['get', 'kind'], 'mushroom-marker'];
-    map.addLayer({ id: GPX_CLOUD_MARKERS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: mushroomFilter, paint: { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 9, 2, 11, 8, 14, 20, 17], 'circle-color': ['match', ['get', 'markerSpecies'], 'porcini', '#8b5a2b', 'finferli', '#f2b84b', '#5d4668'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff4dc', 'circle-opacity': 0.98 } });
-    map.addLayer({ id: GPX_CLOUD_MARKER_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: mushroomFilter, layout: { 'text-field': ['get', 'countLabel'], 'text-size': 10, 'text-line-height': 0.86, 'text-allow-overlap': true, 'text-ignore-placement': true, 'text-justify': 'center' }, paint: { 'text-color': ['match', ['get', 'markerSpecies'], 'finferli', '#2b1d00', '#fff'], 'text-halo-width': 0.6, 'text-halo-color': ['match', ['get', 'markerSpecies'], 'finferli', '#f8d979', '#35213b'] } });
+    map.addLayer({ id: GPX_CLOUD_MARKERS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['all', mushroomFilter, ['!=', ['get', 'markerSpecies'], 'mixed']], paint: { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 9, 2, 11, 8, 14, 20, 17], 'circle-color': ['match', ['get', 'markerSpecies'], 'porcini', '#8b5e3c', '#ffd21f'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff', 'circle-opacity': 0.98 } });
+    const mixedMarkerImage = ensureMixedMushroomMarkerImage(map);
+    if (mixedMarkerImage) map.addLayer({ id: GPX_MIXED_MARKER_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['all', mushroomFilter, ['==', ['get', 'markerSpecies'], 'mixed']], layout: { 'icon-image': mixedMarkerImage, 'icon-size': ['interpolate', ['linear'], ['get', 'count'], 2, 0.94, 8, 1.08, 20, 1.24], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    map.addLayer({ id: GPX_CLOUD_MARKER_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['all', mushroomFilter, ['!=', ['get', 'markerSpecies'], 'mixed']], layout: { 'text-field': ['get', 'countLabel'], 'text-size': 10, 'text-allow-overlap': true, 'text-ignore-placement': true, 'text-justify': 'center' }, paint: { 'text-color': ['match', ['get', 'markerSpecies'], 'finferli', '#2b1d00', '#fff'], 'text-halo-width': 0.6, 'text-halo-color': ['match', ['get', 'markerSpecies'], 'finferli', '#fff3a7', '#35213b'] } });
+    const mixedFilter: maplibregl.FilterSpecification = ['all', mushroomFilter, ['==', ['get', 'markerSpecies'], 'mixed']];
+    map.addLayer({ id: GPX_MIXED_PORCINI_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: mixedFilter, layout: { 'text-field': ['get', 'porciniLabel'], 'text-size': 9, 'text-offset': [-1.35, 0], 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#fff', 'text-halo-width': 0.6, 'text-halo-color': '#553421' } });
+    map.addLayer({ id: GPX_MIXED_FINFELLI_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: mixedFilter, layout: { 'text-field': ['get', 'finferliLabel'], 'text-size': 9, 'text-offset': [1.35, 0], 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#2b1d00', 'text-halo-width': 0.6, 'text-halo-color': '#fff3a7' } });
     map.addLayer({ id: GPX_SELECTED_POINT_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'selected-edit-point'], paint: { 'circle-radius': 6, 'circle-color': '#ffffff', 'circle-opacity': 0.92, 'circle-stroke-width': 3, 'circle-stroke-color': '#1677ff' } });
     map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], layout: { 'text-field': '■', 'text-size': 14, 'text-allow-overlap': true }, paint: { 'text-color': ['match', ['get', 'kind'], 'start', '#00d94f', '#ff2f3d'], 'text-halo-width': 1.5, 'text-halo-color': '#ffffff' } });
-  }, [cloudTracks, editingTrackId, mapReady, mapZoom, selectedEditPointIndex]);
+  }, [cloudTracks, clusterZoom, editingTrackId, hiddenCloudTrackIds, mapReady, selectedEditPointIndex]);
 
   React.useEffect(() => {
     if (!accountSession.session || !accountLifecycle.fullAccess) {
       setCloudTracks([]);
+      setHiddenCloudTrackIds(new Set());
       setEditingTrackId(null);
       setSelectedEditPointIndex(null);
     }
@@ -465,10 +511,20 @@ function App() {
 
   const showCloudTrack = React.useCallback((track: CloudMapTrack) => {
     setCloudTracks((current) => [...current.filter((item) => item.id !== track.id), track]);
+    setHiddenCloudTrackIds((current) => {
+      const next = new Set(current);
+      next.delete(track.id);
+      return next;
+    });
   }, []);
 
   const beginEditingTrack = React.useCallback((track: CloudMapTrack) => {
     setCloudTracks((current) => [...current.filter((item) => item.id !== track.id), track]);
+    setHiddenCloudTrackIds((current) => {
+      const next = new Set(current);
+      next.delete(track.id);
+      return next;
+    });
     setSelectedEditPointIndex(null);
     setEditingTrackId(track.id);
   }, []);
@@ -601,13 +657,19 @@ function App() {
         </button>
       </nav>      {cloudTracks.length > 0 && (
         <aside className="cloud-tracks-panel" aria-label="Percorsi sulla mappa">
-          <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}</strong></span><button type="button" onClick={() => { setCloudTracks([]); setEditingTrackId(null); }}>Rimuovi tutti</button></header>
-          <ul>{cloudTracks.map((track) => <li key={track.id}>
-            <button type="button" onClick={() => focusCloudTrack(track)}><span className="cloud-track-dot" aria-hidden="true" /><span className="cloud-track-map-label"><strong>{track.name}</strong><time dateTime={getTrackDateIso(track.track)}>{formatTrackDate(track.track)}</time></span></button>
-            <div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div>
-            <button className="cloud-track-edit" type="button" disabled={!isTrackEditable(track)} title={isTrackEditable(track) ? 'Modifica percorso' : 'Editing non disponibile'} aria-label={'Modifica ' + track.name} onClick={() => { setSelectedEditPointIndex(null); setEditingTrackId(track.id); }}><Pencil size={15} /></button>
-            <button type="button" aria-label={'Rimuovi ' + track.name + ' dalla mappa'} onClick={() => { setCloudTracks((current) => current.filter((item) => item.id !== track.id)); if (editingTrackId === track.id) setEditingTrackId(null); }}>×</button>
-          </li>)}</ul>
+          <header><span><small>Sulla mappa</small><strong>{cloudTracks.length} {cloudTracks.length === 1 ? 'percorso' : 'percorsi'}{hiddenCloudTrackIds.size > 0 ? ` · ${hiddenCloudTrackIds.size} nascosto` : ''}</strong></span><button type="button" onClick={() => { setCloudTracks([]); setHiddenCloudTrackIds(new Set()); setEditingTrackId(null); }}>Rimuovi tutti</button></header>
+          <ul>{cloudTracks.map((track) => {
+            const hidden = hiddenCloudTrackIds.has(track.id);
+            return <li key={track.id} className={hidden ? 'is-hidden' : ''}>
+              <button type="button" onClick={() => {
+                if (hidden) setHiddenCloudTrackIds((current) => { const next = new Set(current); next.delete(track.id); return next; });
+                focusCloudTrack(track);
+              }}><span className="cloud-track-dot" aria-hidden="true" /><span className="cloud-track-map-label"><strong>{track.name}</strong><time dateTime={getTrackDateIso(track.track)}>{formatTrackDate(track.track)}</time></span></button>
+              <div className="cloud-track-counts"><span>Porcini {track.data.porciniCount}</span><span>Finferli {track.data.finferliCount}</span></div>
+              <button className={`cloud-track-visibility${hidden ? ' is-hidden' : ''}`} type="button" disabled={editingTrackId === track.id} title={hidden ? 'Mostra sulla mappa' : 'Nascondi dalla mappa'} aria-label={`${hidden ? 'Mostra' : 'Nascondi'} ${track.name} sulla mappa`} onClick={() => setHiddenCloudTrackIds((current) => { const next = new Set(current); if (hidden) next.delete(track.id); else next.add(track.id); return next; })}>{hidden ? <Eye size={15} /> : <EyeOff size={15} />}</button>
+              <button type="button" aria-label={'Rimuovi ' + track.name + ' dalla mappa'} onClick={() => { setCloudTracks((current) => current.filter((item) => item.id !== track.id)); setHiddenCloudTrackIds((current) => { const next = new Set(current); next.delete(track.id); return next; }); if (editingTrackId === track.id) setEditingTrackId(null); }}>×</button>
+            </li>;
+          })}</ul>
         </aside>
       )}
       {editingTrack && <GpxTrackEditor
@@ -916,7 +978,7 @@ function App() {
         />
       )}
       {accountArchiveOpen && (
-        <AccountArchiveDrawer sessionState={accountSession} lifecycle={accountLifecycle} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onEditTrack={beginEditingTrack} visibleTrackIds={new Set(cloudTracks.map((track) => track.id))} onHideTrack={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => setCloudTracks((current) => current.filter((item) => item.id !== id))} />
+        <AccountArchiveDrawer sessionState={accountSession} lifecycle={accountLifecycle} onClose={() => setAccountArchiveOpen(false)} onShowTrack={showCloudTrack} onEditTrack={beginEditingTrack} visibleTrackIds={new Set(cloudTracks.filter((track) => !hiddenCloudTrackIds.has(track.id)).map((track) => track.id))} onHideTrack={(id) => { setCloudTracks((current) => current.filter((item) => item.id !== id)); setHiddenCloudTrackIds((current) => { const next = new Set(current); next.delete(id); return next; }); }} onTrackRenamed={(id, name) => setCloudTracks((current) => current.map((item) => item.id === id ? { ...item, name } : item))} onTrackDeleted={(id) => { setCloudTracks((current) => current.filter((item) => item.id !== id)); setHiddenCloudTrackIds((current) => { const next = new Set(current); next.delete(id); return next; }); }} />
       )}
     </main>
   );

@@ -17,7 +17,7 @@ describe('mushroom markers on cloud tracks', () => {
     ], 16);
 
     expect(result).toHaveLength(1);
-    expect(result[0].properties).toMatchObject({ markerSpecies: 'mixed', porciniCount: 3, finferliCount: 3, count: 6, countLabel: 'P3\nF3' });
+    expect(result[0].properties).toMatchObject({ markerSpecies: 'mixed', porciniCount: 3, finferliCount: 3, count: 6, countLabel: 'P3 F3', porciniLabel: 'P3', finferliLabel: 'F3' });
   });
 
   it('accorpa punti vicini solo a zoom ridotto e li separa ad alto zoom', () => {
@@ -27,13 +27,13 @@ describe('mushroom markers on cloud tracks', () => {
     ];
 
     expect(clusterMushroomFeatures(nearby, 11)).toHaveLength(1);
-    expect(clusterMushroomFeatures(nearby, 16)).toHaveLength(2);
+    expect(clusterMushroomFeatures(nearby, 18)).toHaveLength(2);
   });
 
   it('mantiene una sigla leggibile anche per un singolo marker', () => {
     const result = clusterMushroomFeatures([
       marker(11.5, 46.3, 'cloud-marker', { porciniCount: 4, finferliCount: 0, countLabel: 'P4' }),
-    ], 16);
+    ], 18);
 
     expect(result[0].properties).toMatchObject({ markerSpecies: 'porcini', countLabel: 'P4', count: 4 });
   });

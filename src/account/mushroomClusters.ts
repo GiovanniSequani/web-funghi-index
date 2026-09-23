@@ -14,6 +14,8 @@ export type ClusteredMushroomProperties = {
   porciniCount: number;
   finferliCount: number;
   countLabel: string;
+  porciniLabel: string;
+  finferliLabel: string;
   clustered: boolean;
 };
 
@@ -29,8 +31,8 @@ type Group = {
 };
 
 const MERCATOR_TILE_SIZE = 512;
-const MAX_CLUSTER_ZOOM = 15;
-const CLUSTER_RADIUS_PX = 44;
+const MAX_CLUSTER_ZOOM = 17;
+const CLUSTER_RADIUS_PX = 58;
 
 function toCounts(feature: MushroomFeature): Pick<Group, 'porciniCount' | 'finferliCount'> | null {
   const properties = feature.properties ?? {};
@@ -60,9 +62,13 @@ function markerProperties(group: Group, clustered: boolean): ClusteredMushroomPr
     ? 'mixed' as const
     : group.porciniCount > 0 ? 'porcini' as const : 'finferli' as const;
   const countLabel = markerSpecies === 'mixed'
-    ? `P${group.porciniCount}\nF${group.finferliCount}`
+    ? `P${group.porciniCount} F${group.finferliCount}`
     : `${markerSpecies === 'porcini' ? 'P' : 'F'}${count}`;
-  return { kind: 'mushroom-marker', markerSpecies, count, porciniCount: group.porciniCount, finferliCount: group.finferliCount, countLabel, clustered };
+  return {
+    kind: 'mushroom-marker', markerSpecies, count,
+    porciniCount: group.porciniCount, finferliCount: group.finferliCount,
+    countLabel, porciniLabel: `P${group.porciniCount}`, finferliLabel: `F${group.finferliCount}`, clustered,
+  };
 }
 
 function mercatorPixel([longitude, rawLatitude]: GeoJSON.Position, zoom: number): [number, number] {
