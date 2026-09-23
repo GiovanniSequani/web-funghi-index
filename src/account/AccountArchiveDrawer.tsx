@@ -15,6 +15,7 @@ import {
   Pencil,
   RefreshCw,
   Scissors,
+  Share2,
   Trash2,
   Upload,
   UserPlus,
@@ -35,9 +36,10 @@ import {
   uploadPreparedTrack,
 } from './client';
 import { decodeCloudGpx, prepareImportedGpx } from './gpx';
+import { createDerivedGpxExport } from './gpxExport';
 import { formatTrackDate, getTrackDateIso } from './trackDate';
-import type { AccountArchiveError, AccountSessionState, ArchiveConfig, ArchiveData, CloudMapTrack, GpxMapData, GpxTrack, PreparedGpxUpload } from './types';
-import { normalizeTrackName, normalizeUsername, safeDownloadName, toAccountError, validateTrackName, validateUsername } from './validation';
+import { AccountArchiveError, type AccountSessionState, type ArchiveConfig, type ArchiveData, type CloudMapTrack, type GpxMapData, type GpxTrack, type PreparedGpxUpload } from './types';
+import { normalizeTrackName, normalizeUsername, toAccountError, validateTrackName, validateUsername } from './validation';
 import { AccountLifecyclePanel } from './AccountLifecyclePanel';
 import { AccountRightsPanel } from './AccountRightsPanel';
 import {
@@ -248,9 +250,10 @@ function AuthForm(props: {
 }
 function TrackRow(props: {
   track: GpxTrack;
-  action: 'download' | 'display' | 'edit' | 'rename' | 'delete' | null;
+  action: 'download' | 'share' | 'display' | 'edit' | 'rename' | 'delete' | null;
   partialDelete: boolean;
   onDownload: () => void;
+  onShare: () => void;
   onDisplay: () => void;
   onEdit: () => void;
   visibleOnMap: boolean;
@@ -300,7 +303,8 @@ function TrackRow(props: {
           <div role="menu">
             <button type="button" role="menuitem" onClick={runMenuAction(props.onRename)} disabled={props.action !== null || props.partialDelete || props.renaming}><Pencil size={15} /> Rinomina</button>
             <button type="button" role="menuitem" onClick={runMenuAction(props.onEdit)} disabled={props.action !== null || props.partialDelete}><Scissors size={15} /> Modifica</button>
-            <button type="button" role="menuitem" onClick={runMenuAction(props.onDownload)} disabled={props.action !== null || props.partialDelete}><CloudDownload size={15} /> {props.action === 'download' ? 'Download…' : 'Scarica'}</button>
+            <button type="button" role="menuitem" onClick={runMenuAction(props.onDownload)} disabled={props.action !== null || props.partialDelete}><CloudDownload size={15} /> {props.action === 'download' ? 'Preparazione…' : 'Scarica GPX'}</button>
+            <button type="button" role="menuitem" onClick={runMenuAction(props.onShare)} disabled={props.action !== null || props.partialDelete}><Share2 size={15} /> {props.action === 'share' ? 'Preparazione…' : 'Condividi GPX'}</button>
             <button className="danger" type="button" role="menuitem" onClick={runMenuAction(props.onDelete)} disabled={props.action !== null}><Trash2 size={15} /> {props.action === 'delete' ? 'Cancellazione…' : props.partialDelete ? 'Completa cancellazione' : 'Elimina'}</button>
           </div>
         </details>
@@ -330,7 +334,7 @@ export function AccountArchiveDrawer(props: {
   const [authBusy, setAuthBusy] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [authNotice, setAuthNotice] = React.useState<string | null>(null);
-  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'display' | 'edit' | 'rename' | 'delete'>>({});
+  const [trackActions, setTrackActions] = React.useState<Record<string, 'download' | 'share' | 'display' | 'edit' | 'rename' | 'delete'>>({});
   const [preparedUpload, setPreparedUpload] = React.useState<{ file: File; prepared: PreparedGpxUpload } | null>(null);
   const [uploadName, setUploadName] = React.useState('');
   const [uploadBusy, setUploadBusy] = React.useState(false);
@@ -449,15 +453,31 @@ export function AccountArchiveDrawer(props: {
     props.lifecycle.applyAccess(nextAccess);
   };
 
+  const prepareDerivedExport = async (track: GpxTrack) => {
+    // Always read the current metadata before exporting. The Storage GPX is
+    // immutable, while name and trim are server-authoritative database state.
+    const currentArchive = await loadArchiveData();
+    const currentTrack = currentArchive.tracks.find((item) => item.id === track.id);
+    if (!currentTrack) throw new AccountArchiveError('track_not_found', 'Traccia non trovata. Aggiorna l’archivio e riprova.');
+    setArchive(currentArchive);
+
+    const cached = trackDetails[currentTrack.id];
+    const data = typeof cached === 'object'
+      ? cached
+      : await decodeCloudGpx(await downloadTrack(currentTrack), currentTrack.original_filename, currentArchive.config);
+    const markers = await loadTrackMarkers(currentTrack.id);
+    return createDerivedGpxExport(currentTrack, data, markers);
+  };
+
   const handleDownload = async (track: GpxTrack) => {
     setTrackActions((current) => ({ ...current, [track.id]: 'download' }));
     setArchiveError(null);
     try {
-      const blob = await downloadTrack(track);
+      const { blob, filename } = await prepareDerivedExport(track);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = safeDownloadName(track.original_filename || track.display_name);
+      anchor.download = filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -466,6 +486,31 @@ export function AccountArchiveDrawer(props: {
       const normalized = toAccountError(error);
       setArchiveError(normalized.message);
       if (normalized.code === 'session_expired') void getAccountSupabaseClient().auth.signOut();
+    } finally {
+      setTrackActions((current) => {
+        const next = { ...current };
+        delete next[track.id];
+        return next;
+      });
+    }
+  };
+
+  const handleShare = async (track: GpxTrack) => {
+    setTrackActions((current) => ({ ...current, [track.id]: 'share' }));
+    setArchiveError(null);
+    try {
+      const { blob, filename } = await prepareDerivedExport(track);
+      const file = new File([blob], filename, { type: blob.type });
+      if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+        throw new AccountArchiveError('unknown', 'La condivisione di file non è supportata da questo browser. Scarica il GPX per condividerlo.');
+      }
+      await navigator.share({ files: [file], title: track.display_name });
+    } catch (error) {
+      if ((error as DOMException).name !== 'AbortError') {
+        const normalized = toAccountError(error);
+        setArchiveError(normalized.message);
+        if (normalized.code === 'session_expired') void getAccountSupabaseClient().auth.signOut();
+      }
     } finally {
       setTrackActions((current) => {
         const next = { ...current };
@@ -774,6 +819,7 @@ export function AccountArchiveDrawer(props: {
                     action={trackActions[track.id] ?? null}
                     partialDelete={partialDeletes.has(track.id)}
                     onDownload={() => void handleDownload(track)}
+                    onShare={() => void handleShare(track)}
                     onDisplay={() => void handleDisplay(track)}
                     onEdit={() => void handleEdit(track)}
                     visibleOnMap={props.visibleTrackIds.has(track.id)}
