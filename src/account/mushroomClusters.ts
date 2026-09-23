@@ -32,7 +32,7 @@ type Group = {
 
 const MERCATOR_TILE_SIZE = 512;
 const MAX_CLUSTER_ZOOM = 17;
-const CLUSTER_RADIUS_PX = 52;
+const CLUSTER_RADIUS_PX = 46;
 
 function toCounts(feature: MushroomFeature): Pick<Group, 'porciniCount' | 'finferliCount'> | null {
   const properties = feature.properties ?? {};
