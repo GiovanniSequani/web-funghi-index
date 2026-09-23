@@ -299,6 +299,9 @@ function App() {
       maxZoom: BASE_MAP_MAX_ZOOM,
       attributionControl: { compact: true },
     });
+    // Keep wheel behavior conservative, while making precision-trackpad zoom
+    // feel closer to the map interaction users expect on desktop.
+    map.scrollZoom.setZoomRate(1 / 50);
 
     const updateClusterZoom = () => {
       const nextZoom = Math.floor(map.getZoom());
