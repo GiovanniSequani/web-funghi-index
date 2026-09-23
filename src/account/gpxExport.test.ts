@@ -32,7 +32,7 @@ const data: GpxMapData = {
     type: 'FeatureCollection',
     features: [{
       type: 'Feature',
-      properties: { species: 'porcino', name: 'Porcino storico 7' },
+      properties: { species: 'porcino', name: 'Porcino_7' },
       geometry: { type: 'Point', coordinates: [11.2, 46.2] },
     }],
   },
@@ -67,18 +67,18 @@ describe('derived cloud GPX export', () => {
     expect(xml).not.toContain('lon="11.04"');
   });
 
-  it('preserva i marker storici e aggiunge marker nuovi con progressivi per specie e quantità', async () => {
+  it('preserva i marker storici e espande quantità e progressivi nel formato GPX dell’app', async () => {
     const xml = await createDerivedGpxExport(track, data, markers).blob.text();
     const document = new DOMParser().parseFromString(xml, 'application/xml');
     const waypoints = [...document.querySelectorAll('wpt')];
 
     expect(waypoints.map((waypoint) => waypoint.querySelector('name')?.textContent))
-      .toEqual(['Porcino storico 7', 'finferlo1', 'porcino1']);
+      .toEqual(['Porcino_7', 'Finferlo_1', 'Finferlo_2', 'Porcino_8', 'Porcino_9', 'Porcino_10']);
     expect(waypoints.map((waypoint) => waypoint.querySelector('type')?.textContent))
-      .toEqual(['porcino', 'finferlo', 'porcino']);
-    expect(xml).toContain('<funghitracker:count>2</funghitracker:count>');
-    expect(xml).toContain('<funghitracker:count>3</funghitracker:count>');
-    expect(xml).not.toContain('Porcino storico 1');
+      .toEqual(['porcino', 'finferlo', 'finferlo', 'porcino', 'porcino', 'porcino']);
+    expect(xml).not.toContain('<desc>');
+    expect(xml).not.toContain('<extensions>');
+    expect(waypoints.map((waypoint) => waypoint.querySelector('name')?.textContent)).not.toContain('Porcino_1');
     expect(xml).not.toContain('Porcini: 9');
   });
 

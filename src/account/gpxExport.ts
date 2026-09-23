@@ -2,7 +2,6 @@ import { AccountArchiveError, type GpxMapData, type GpxMushroomMarker, type GpxT
 import { getStoredTrim } from './trackEditing';
 
 const GPX_NAMESPACE = 'http://www.topografix.com/GPX/1/1';
-const FUNGHITRACKER_NAMESPACE = 'https://funghitracker.it/gpx/1';
 
 function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -30,13 +29,17 @@ function markerXml(marker: GpxMushroomMarker, name: string): string {
     `  <wpt lat="${coordinate(marker.latitude)}" lon="${coordinate(marker.longitude)}">`,
     `    <name>${name}</name>`,
     `    <type>${species}</type>`,
-    `    <desc>${species === 'porcino' ? 'Porcini' : 'Finferli'}: ${marker.count}</desc>`,
-    '    <extensions>',
-    `      <funghitracker:species>${marker.species}</funghitracker:species>`,
-    `      <funghitracker:count>${marker.count}</funghitracker:count>`,
-    '    </extensions>',
     '  </wpt>',
   ].join('\n');
+}
+
+function nextMarkerIndex(findings: GpxMapData['findings'], species: 'porcini' | 'finferli'): number {
+  const prefix = species === 'porcini' ? 'porcino' : 'finferlo';
+  const pattern = new RegExp(`^${prefix}_(\\d+)$`, 'i');
+  return findings.features.reduce((highest, finding) => {
+    const match = pattern.exec(finding.properties.name.trim());
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
 }
 
 /**
@@ -64,7 +67,7 @@ export function createDerivedGpxExport(
 
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<gpx version="1.1" creator="FunghiTracker" xmlns="${GPX_NAMESPACE}" xmlns:funghitracker="${FUNGHITRACKER_NAMESPACE}">`,
+    `<gpx version="1.1" creator="FunghiTracker" xmlns="${GPX_NAMESPACE}">`,
   ];
 
   // Historical GPX waypoints are preserved with their original names. New
@@ -85,15 +88,20 @@ export function createDerivedGpxExport(
     .filter((marker) => marker.track_point_index >= trimStart && marker.track_point_index <= trimEnd)
     .filter((marker) => pointByIndex.has(marker.track_point_index))
     .sort((left, right) => left.track_point_index - right.track_point_index || left.species.localeCompare(right.species));
-  let porciniIndex = 0;
-  let finferliIndex = 0;
+  let porciniIndex = nextMarkerIndex(data.findings, 'porcini');
+  let finferliIndex = nextMarkerIndex(data.findings, 'finferli');
   for (const marker of newMarkers) {
-    const name = marker.species === 'porcini' ? `porcino${++porciniIndex}` : `finferlo${++finferliIndex}`;
+    if (!Number.isSafeInteger(marker.count) || marker.count < 1) {
+      throw new AccountArchiveError('invalid_gpx', 'La quantità di un ritrovamento non è valida.');
+    }
     const point = pointByIndex.get(marker.track_point_index)!;
     const [longitude, latitude] = point.coordinate;
     // The server marker is keyed to the original GPX point index. Export that
     // canonical coordinate rather than a rounded display coordinate.
-    lines.push(markerXml({ ...marker, latitude, longitude }, name));
+    for (let occurrence = 0; occurrence < marker.count; occurrence += 1) {
+      const name = marker.species === 'porcini' ? `Porcino_${++porciniIndex}` : `Finferlo_${++finferliIndex}`;
+      lines.push(markerXml({ ...marker, latitude, longitude }, name));
+    }
   }
 
   if (data.usesTrackPoints) {
