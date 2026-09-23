@@ -8,6 +8,7 @@ import { AccountArchiveDrawer } from './account/AccountArchiveDrawer';
 import { GpxTrackEditor } from './account/GpxTrackEditor';
 import { formatTrackDate, getTrackDateIso } from './account/trackDate';
 import { buildTrackFeatures, getActiveDraft, getTrackVisibleBbox, isTrackEditable } from './account/trackEditing';
+import { clusterMushroomFeatures } from './account/mushroomClusters';
 import type { CloudMapTrack } from './account/types';
 import { useAccountSession } from './account/useAccountSession';
 import { useAccountLifecycle } from './account/useAccountLifecycle';
@@ -32,7 +33,6 @@ const GPX_SOURCE_ID = 'cloud-gpx-source';
 const GPX_EXCLUDED_LAYER_ID = 'cloud-gpx-excluded';
 const GPX_OUTLINE_LAYER_ID = 'cloud-gpx-outline';
 const GPX_LAYER_ID = 'cloud-gpx-line';
-const GPX_FINDINGS_LAYER_ID = 'cloud-gpx-findings';
 const GPX_CLOUD_MARKERS_LAYER_ID = 'cloud-gpx-cloud-markers';
 const GPX_CLOUD_MARKER_LABELS_LAYER_ID = 'cloud-gpx-cloud-marker-labels';
 const GPX_SELECTED_POINT_LAYER_ID = 'cloud-gpx-selected-point';
@@ -113,6 +113,7 @@ function App() {
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<Map | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
+  const [mapZoom, setMapZoom] = React.useState(9);
   const [selectedMapPoint, setSelectedMapPoint] = React.useState<MapPoint | null>(null);
   const [detailsPoint, setDetailsPoint] = React.useState<MapPoint | null>(null);
   const [analysisPoint, setAnalysisPoint] = React.useState<MapPoint | null>(null);
@@ -266,7 +267,12 @@ function App() {
       attributionControl: { compact: true },
     });
 
-    map.on('load', () => setMapReady(true));
+    const updateMapZoom = () => setMapZoom(map.getZoom());
+    map.on('load', () => {
+      updateMapZoom();
+      setMapReady(true);
+    });
+    map.on('zoomend', updateMapZoom);
     let suppressMapClickUntil = 0;
     const selectNearestEditingPoint = (screenPoint: { x: number; y: number }, threshold: number): boolean => {
       const trackId = editingTrackIdRef.current;
@@ -318,6 +324,7 @@ function App() {
 
     return () => {
       removeLongPress();
+      map.off('zoomend', updateMapZoom);
       map.remove();
       mapRef.current = null;
     };
@@ -414,10 +421,13 @@ function App() {
     const selectedEditingCoordinate = selectedEditingTrack && selectedEditPointIndex !== null
       ? selectedEditingTrack.data.trackPoints.find((point) => point.pointIndex === selectedEditPointIndex)?.coordinate
       : undefined;
+    const trackFeatures = cloudTracks.flatMap((track, index) => buildTrackFeatures(track, index));
+    const mushroomMarkers = clusterMushroomFeatures(trackFeatures as Parameters<typeof clusterMushroomFeatures>[0], mapZoom);
     const collection: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: [
-        ...cloudTracks.flatMap((track, index) => buildTrackFeatures(track, index)),
+        ...trackFeatures.filter((feature) => feature.properties?.kind !== 'finding' && feature.properties?.kind !== 'cloud-marker'),
+        ...mushroomMarkers,
         ...(selectedEditingCoordinate ? [{
           type: 'Feature' as const,
           properties: { kind: 'selected-edit-point', pointIndex: selectedEditPointIndex },
@@ -425,7 +435,7 @@ function App() {
         }] : []),
       ],
     };
-    const layerIds = [GPX_SELECTED_POINT_LAYER_ID, GPX_CLOUD_MARKER_LABELS_LAYER_ID, GPX_CLOUD_MARKERS_LAYER_ID, GPX_FINDINGS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID, GPX_EXCLUDED_LAYER_ID];
+    const layerIds = [GPX_SELECTED_POINT_LAYER_ID, GPX_CLOUD_MARKER_LABELS_LAYER_ID, GPX_CLOUD_MARKERS_LAYER_ID, GPX_ENDPOINTS_LAYER_ID, GPX_LAYER_ID, GPX_OUTLINE_LAYER_ID, GPX_EXCLUDED_LAYER_ID];
     if (cloudTracks.length === 0) {
       layerIds.forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(GPX_SOURCE_ID)) map.removeSource(GPX_SOURCE_ID);
@@ -438,12 +448,12 @@ function App() {
     map.addLayer({ id: GPX_EXCLUDED_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'excluded-line'], paint: { 'line-color': '#c9cfca', 'line-width': 3, 'line-opacity': 0.65, 'line-dasharray': [1.4, 1.4] } }, PLACE_LABEL_LAYER_ID);
     map.addLayer({ id: GPX_OUTLINE_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': '#102016', 'line-width': 5, 'line-opacity': 0.85 } }, PLACE_LABEL_LAYER_ID);
     map.addLayer({ id: GPX_LAYER_ID, type: 'line', source: GPX_SOURCE_ID, filter: keptFilter, paint: { 'line-color': ['match', ['%', ['get', 'colorIndex'], 4], 0, '#79e06e', 1, '#56b4ff', 2, '#d99cff', '#ffd166'], 'line-width': 3, 'line-opacity': 0.95 } }, PLACE_LABEL_LAYER_ID);
-    map.addLayer({ id: GPX_FINDINGS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'finding'], paint: { 'circle-radius': 6, 'circle-color': ['match', ['get', 'species'], 'porcino', '#8b5a2b', '#f2b84b'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } });
-    map.addLayer({ id: GPX_CLOUD_MARKERS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'cloud-marker'], paint: { 'circle-radius': 10, 'circle-color': ['match', ['get', 'markerSpecies'], 'porcini', '#8b5a2b', 'finferli', '#f2b84b', '#6f4c9b'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff4dc' } });
-    map.addLayer({ id: GPX_CLOUD_MARKER_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'cloud-marker'], layout: { 'text-field': ['get', 'countLabel'], 'text-size': 10, 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
+    const mushroomFilter: maplibregl.FilterSpecification = ['==', ['get', 'kind'], 'mushroom-marker'];
+    map.addLayer({ id: GPX_CLOUD_MARKERS_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: mushroomFilter, paint: { 'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 9, 2, 11, 8, 14, 20, 17], 'circle-color': ['match', ['get', 'markerSpecies'], 'porcini', '#8b5a2b', 'finferli', '#f2b84b', '#5d4668'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff4dc', 'circle-opacity': 0.98 } });
+    map.addLayer({ id: GPX_CLOUD_MARKER_LABELS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: mushroomFilter, layout: { 'text-field': ['get', 'countLabel'], 'text-size': 10, 'text-line-height': 0.86, 'text-allow-overlap': true, 'text-ignore-placement': true, 'text-justify': 'center' }, paint: { 'text-color': ['match', ['get', 'markerSpecies'], 'finferli', '#2b1d00', '#fff'], 'text-halo-width': 0.6, 'text-halo-color': ['match', ['get', 'markerSpecies'], 'finferli', '#f8d979', '#35213b'] } });
     map.addLayer({ id: GPX_SELECTED_POINT_LAYER_ID, type: 'circle', source: GPX_SOURCE_ID, filter: ['==', ['get', 'kind'], 'selected-edit-point'], paint: { 'circle-radius': 6, 'circle-color': '#ffffff', 'circle-opacity': 0.92, 'circle-stroke-width': 3, 'circle-stroke-color': '#1677ff' } });
     map.addLayer({ id: GPX_ENDPOINTS_LAYER_ID, type: 'symbol', source: GPX_SOURCE_ID, filter: ['in', ['get', 'kind'], ['literal', ['start', 'end']]], layout: { 'text-field': '■', 'text-size': 14, 'text-allow-overlap': true }, paint: { 'text-color': ['match', ['get', 'kind'], 'start', '#00d94f', '#ff2f3d'], 'text-halo-width': 1.5, 'text-halo-color': '#ffffff' } });
-  }, [cloudTracks, editingTrackId, mapReady, selectedEditPointIndex]);
+  }, [cloudTracks, editingTrackId, mapReady, mapZoom, selectedEditPointIndex]);
 
   React.useEffect(() => {
     if (!accountSession.session || !accountLifecycle.fullAccess) {

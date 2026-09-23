@@ -65,7 +65,7 @@ export function buildTrackFeatures(track: CloudMapTrack, colorIndex: number): Ge
       : String(counts.porcini || counts.finferli);
     features.push({
       type: 'Feature',
-      properties: { routeId: track.id, kind: 'cloud-marker', pointIndex, markerSpecies, countLabel },
+      properties: { routeId: track.id, kind: 'cloud-marker', pointIndex, markerSpecies, countLabel, porciniCount: counts.porcini, finferliCount: counts.finferli },
       geometry: { type: 'Point', coordinates: coordinate },
     });
   }
